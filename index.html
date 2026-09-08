@@ -1,0 +1,1161 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Blackwatch | Strategic Advisory Tracker</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #f4f5f7;
+    --card: #ffffff;
+    --text: #111111;
+    --muted: #888888;
+    --border: #e2e2e2;
+    --sidebar-bg: #0f0f0f;
+    --topbar-bg: #000000;
+    --accent: #111111;
+    --accent-hover: #333333;
+    --success: #1a7a40;
+    --warning: #b86c0a;
+    --info: #1a4fa0;
+    --urgent: #9a1520;
+    --sidebar-text: rgba(255,255,255,0.5);
+    --sidebar-text-hover: rgba(255,255,255,0.85);
+    --sidebar-active-bg: rgba(255,255,255,0.08);
+    --sidebar-border: rgba(255,255,255,0.07);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+
+  /* TOP BAR */
+  .topbar {
+    background: var(--topbar-bg);
+    padding: 0 28px;
+    height: 56px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    box-shadow: 0 1px 0 rgba(255,255,255,0.06);
+  }
+  .topbar-logo {
+    font-family: 'Playfair Display', serif;
+    font-size: 18px;
+    font-weight: 900;
+    color: #ffffff;
+    letter-spacing: 3px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .bw-mark {
+    width: 26px; height: 26px;
+    border: 1px solid rgba(255,255,255,0.35);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 10px; font-weight: 700; font-family: 'DM Sans', sans-serif;
+    color: #ffffff; letter-spacing: 0.5px; flex-shrink: 0;
+  }
+  .topbar-logo .sub { font-size: 9px; font-family: 'DM Sans', sans-serif; font-weight: 400; opacity: 0.35; letter-spacing: 3px; text-transform: uppercase; margin-left: 2px; }
+  .topbar-right { display: flex; align-items: center; gap: 8px; }
+  .topbar-btn {
+    background: rgba(255,255,255,0.07);
+    border: 1px solid rgba(255,255,255,0.12);
+    color: rgba(255,255,255,0.65);
+    padding: 6px 13px;
+    border-radius: 3px;
+    font-size: 11px;
+    cursor: pointer;
+    font-family: 'DM Sans', sans-serif;
+    transition: all 0.2s;
+    letter-spacing: 0.3px;
+  }
+  .topbar-btn:hover { background: rgba(255,255,255,0.13); color: #ffffff; border-color: rgba(255,255,255,0.25); }
+  .lock-btn { background: none; border: 1px solid rgba(255,255,255,0.08); color: rgba(255,255,255,0.3); padding: 6px 12px; border-radius: 3px; font-size: 11px; font-family: 'DM Sans', sans-serif; cursor: pointer; transition: all 0.15s; display: flex; align-items: center; gap: 5px; }
+  .lock-btn:hover { border-color: rgba(255,255,255,0.25); color: rgba(255,255,255,0.75); }
+  .hamburger-btn { display: none; background: none; border: none; color: rgba(255,255,255,0.6); font-size: 20px; cursor: pointer; padding: 4px 8px; line-height: 1; }
+
+  /* LAYOUT */
+  .main { display: flex; height: calc(100vh - 56px); }
+
+  /* SIDEBAR */
+  .sidebar {
+    width: 252px;
+    background: var(--sidebar-bg);
+    display: flex;
+    flex-direction: column;
+    flex-shrink: 0;
+    overflow-y: auto;
+  }
+  .sidebar-section { padding: 20px 16px 10px; }
+  .sidebar-label { font-size: 9px; text-transform: uppercase; letter-spacing: 2.5px; color: rgba(255,255,255,0.2); margin-bottom: 10px; font-weight: 600; }
+  .region-tab {
+    display: flex; align-items: center; gap: 9px;
+    padding: 9px 11px;
+    border-radius: 3px;
+    cursor: pointer;
+    color: var(--sidebar-text);
+    font-size: 12px; font-weight: 500;
+    margin-bottom: 2px;
+    transition: all 0.15s;
+    border-left: 2px solid transparent;
+  }
+  .region-tab:hover { background: rgba(255,255,255,0.05); color: var(--sidebar-text-hover); }
+  .region-tab.active { background: var(--sidebar-active-bg); color: #ffffff; border-left-color: #ffffff; }
+  .region-dot { width: 5px; height: 5px; border-radius: 50%; flex-shrink: 0; }
+  .region-count { margin-left: auto; background: rgba(255,255,255,0.07); padding: 1px 6px; border-radius: 8px; font-size: 10px; color: rgba(255,255,255,0.3); }
+  .region-tab.active .region-count { background: rgba(255,255,255,0.12); color: rgba(255,255,255,0.7); }
+  .sidebar-divider { height: 1px; background: var(--sidebar-border); margin: 10px 14px; }
+  .status-legend { padding: 0 16px 16px; }
+  .legend-item { display: flex; align-items: center; gap: 7px; font-size: 10px; color: rgba(255,255,255,0.28); margin-bottom: 7px; letter-spacing: 0.2px; }
+  .legend-dot { width: 6px; height: 6px; border-radius: 2px; flex-shrink: 0; }
+  .sidebar-footer { margin-top: auto; padding: 14px 16px; border-top: 1px solid var(--sidebar-border); }
+  .sidebar-tagline { font-size: 8px; letter-spacing: 2.5px; text-transform: uppercase; color: rgba(255,255,255,0.18); margin-bottom: 6px; }
+  .sidebar-sync { font-size: 10px; color: rgba(255,255,255,0.18); margin-top: 4px; }
+
+  /* CONTENT */
+  .content { flex: 1; overflow-y: auto; padding: 28px 32px; background: var(--bg); }
+  .content-header { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 24px; }
+  .content-header h1 { font-family: 'Playfair Display', serif; font-size: 30px; font-weight: 700; color: var(--text); line-height: 1.1; }
+  .content-header p { font-size: 11px; color: var(--muted); margin-top: 5px; letter-spacing: 0.4px; }
+  .add-project-btn {
+    background: var(--accent); color: #ffffff; border: none;
+    padding: 10px 18px; border-radius: 3px; font-size: 12px; font-weight: 600;
+    cursor: pointer; font-family: 'DM Sans', sans-serif;
+    display: flex; align-items: center; gap: 7px;
+    transition: background 0.2s; white-space: nowrap; letter-spacing: 0.5px;
+  }
+  .add-project-btn:hover { background: var(--accent-hover); }
+
+  /* STATS */
+  .stats-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 10px; margin-bottom: 22px; }
+  .stat-card {
+    background: var(--card); border-radius: 3px;
+    padding: 16px 18px;
+    border: 1px solid var(--border);
+    border-left: 3px solid #dddddd;
+  }
+  .stat-card.s-total  { border-left-color: #111111; }
+  .stat-card.s-active { border-left-color: var(--success); }
+  .stat-card.s-urgent { border-left-color: var(--urgent); }
+  .stat-card.s-pipeline { border-left-color: var(--info); }
+  .stat-card.s-stalled { border-left-color: var(--warning); }
+  .stat-num { font-family: 'Playfair Display', serif; font-size: 32px; font-weight: 700; color: var(--text); line-height: 1; }
+  .stat-label { font-size: 9px; color: var(--muted); margin-top: 5px; text-transform: uppercase; letter-spacing: 1.5px; }
+  .stat-card-header { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 2px; }
+  .stat-icon { font-size: 15px; opacity: 0.2; line-height: 1; margin-top: 5px; }
+
+  /* PROJECTS */
+  .projects-grid { display: flex; flex-direction: column; gap: 8px; }
+  .project-card {
+    background: var(--card); border-radius: 3px;
+    border: 1px solid var(--border);
+    border-left: 3px solid #dddddd;
+    transition: box-shadow 0.2s, border-color 0.2s;
+  }
+  .project-card:hover { box-shadow: 0 2px 16px rgba(0,0,0,0.08); border-color: #cccccc; }
+  .project-card.status-active   { border-left-color: var(--success); }
+  .project-card.status-pipeline { border-left-color: var(--info); }
+  .project-card.status-stalled  { border-left-color: var(--warning); }
+  .project-card.status-closed   { border-left-color: #cccccc; }
+  .project-card.status-urgent   { border-left-color: var(--urgent); }
+
+  .project-header { padding: 15px 18px 13px; display: flex; align-items: flex-start; gap: 14px; cursor: pointer; }
+  .project-main { flex: 1; min-width: 0; }
+  .project-title-row { display: flex; align-items: center; gap: 9px; flex-wrap: wrap; }
+  .project-name { font-size: 15px; font-weight: 600; color: var(--text); }
+  .project-client { font-size: 11px; color: var(--muted); margin-top: 3px; }
+
+  .status-badge { font-size: 9px; font-weight: 700; padding: 3px 8px; border-radius: 2px; text-transform: uppercase; letter-spacing: 1px; white-space: nowrap; }
+  .badge-active   { background: #e8f5ee; color: #1a7a40; border: 1px solid #c2e0ce; }
+  .badge-pipeline { background: #e8eef8; color: #1a4fa0; border: 1px solid #bfcfe8; }
+  .badge-stalled  { background: #fdf2e4; color: #b86c0a; border: 1px solid #f0d9b0; }
+  .badge-closed   { background: #f2f2f2; color: #888888; border: 1px solid #dddddd; }
+  .badge-urgent   { background: #fce8ea; color: #9a1520; border: 1px solid #f0c0c4; }
+
+  .project-meta { display: flex; align-items: center; gap: 16px; margin-top: 9px; flex-wrap: wrap; }
+  .meta-item { font-size: 11px; color: var(--muted); display: flex; align-items: center; gap: 4px; }
+  .meta-item strong { color: var(--text); font-weight: 600; }
+
+  .project-actions { display: flex; align-items: center; gap: 6px; flex-shrink: 0; }
+  .action-btn { background: none; border: 1px solid var(--border); padding: 5px 11px; border-radius: 3px; font-size: 11px; cursor: pointer; color: var(--muted); font-family: 'DM Sans', sans-serif; transition: all 0.15s; }
+  .action-btn:hover { border-color: #999; color: var(--text); }
+  .action-btn.danger { border-color: #f0c0c4; color: #c07070; }
+  .action-btn.danger:hover { border-color: var(--urgent); color: var(--urgent); background: #fce8ea; }
+
+  .progress-bar { background: #eeeeee; border-radius: 2px; height: 3px; overflow: hidden; }
+  .progress-fill { height: 100%; border-radius: 2px; background: var(--success); transition: width 0.5s; }
+  .progress-fill.orange { background: var(--warning); }
+  .progress-fill.dark   { background: #555555; }
+
+  /* EXPAND */
+  .project-expand { display: none; border-top: 1px solid var(--border); padding: 18px; background: #fafafa; }
+  .project-expand.open { display: block; }
+  .expand-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+  .expand-section h4 { font-size: 9px; text-transform: uppercase; letter-spacing: 2px; color: var(--muted); margin-bottom: 9px; font-weight: 600; }
+  .expand-section p { font-size: 13px; color: #444444; line-height: 1.7; }
+
+  /* COMMENTS */
+  .comments-area { grid-column: 1 / -1; }
+  .comment-thread { background: #ffffff; border-radius: 3px; padding: 14px; border: 1px solid var(--border); }
+  .comment-item { display: flex; gap: 9px; margin-bottom: 12px; animation: fadeIn 0.3s ease; }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(3px); } to { opacity: 1; transform: translateY(0); } }
+  .comment-avatar { width: 26px; height: 26px; border-radius: 2px; background: #111111; color: #fff; font-size: 9px; font-weight: 700; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+  .comment-body { flex: 1; }
+  .comment-meta { font-size: 10px; color: var(--muted); margin-bottom: 3px; }
+  .comment-meta strong { color: var(--text); font-weight: 600; }
+  .comment-text { font-size: 12px; color: #444444; line-height: 1.5; }
+  .comment-input-row { display: flex; gap: 9px; margin-top: 12px; }
+  .comment-input { flex: 1; border: 1px solid var(--border); border-radius: 3px; padding: 8px 11px; font-size: 12px; font-family: 'DM Sans', sans-serif; resize: none; outline: none; transition: border-color 0.2s; background: #ffffff; color: var(--text); }
+  .comment-input::placeholder { color: #cccccc; }
+  .comment-input:focus { border-color: #999; }
+  .post-btn { background: var(--accent); color: #fff; border: none; padding: 7px 14px; border-radius: 3px; font-size: 11px; font-weight: 600; cursor: pointer; font-family: 'DM Sans', sans-serif; align-self: flex-end; transition: background 0.2s; letter-spacing: 0.3px; }
+  .post-btn:hover { background: var(--accent-hover); }
+
+  /* EMPTY STATE */
+  .empty-state { text-align: center; padding: 56px 32px; color: var(--muted); }
+  .empty-state h3 { font-size: 17px; color: #555; margin-bottom: 8px; }
+
+  /* MODALS */
+  .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.55); z-index: 200; align-items: center; justify-content: center; backdrop-filter: blur(3px); }
+  .modal-overlay.open { display: flex; }
+  .modal { background: #ffffff; border-radius: 4px; width: 560px; max-width: 95vw; max-height: 90vh; overflow-y: auto; box-shadow: 0 20px 60px rgba(0,0,0,0.2); animation: modalIn 0.2s ease; }
+  @keyframes modalIn { from { opacity: 0; transform: scale(0.97); } to { opacity: 1; transform: scale(1); } }
+  .modal-header { background: #111111; padding: 17px 22px; display: flex; align-items: center; justify-content: space-between; border-radius: 4px 4px 0 0; }
+  .modal-header h3 { font-family: 'Playfair Display', serif; font-size: 17px; color: #ffffff; font-weight: 700; letter-spacing: 0.5px; }
+  .modal-close { background: none; border: none; color: rgba(255,255,255,0.4); font-size: 22px; cursor: pointer; line-height: 1; transition: color 0.15s; }
+  .modal-close:hover { color: #ffffff; }
+  .modal-body { padding: 22px; }
+  .form-row { margin-bottom: 15px; }
+  .form-row label { display: block; font-size: 9px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 1.5px; margin-bottom: 6px; }
+  .form-row input, .form-row select, .form-row textarea { width: 100%; border: 1px solid var(--border); border-radius: 3px; padding: 9px 12px; font-size: 13px; font-family: 'DM Sans', sans-serif; color: var(--text); outline: none; transition: border-color 0.2s; background: #ffffff; }
+  .form-row input:focus, .form-row select:focus, .form-row textarea:focus { border-color: #999; }
+  .form-row textarea { resize: vertical; min-height: 75px; }
+  .form-row-half { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  .modal-footer { display: flex; justify-content: flex-end; gap: 9px; padding: 14px 22px; border-top: 1px solid var(--border); background: #fafafa; border-radius: 0 0 4px 4px; }
+  .cancel-btn { background: none; border: 1px solid var(--border); padding: 8px 16px; border-radius: 3px; font-size: 12px; cursor: pointer; font-family: 'DM Sans', sans-serif; color: var(--muted); transition: all 0.15s; }
+  .cancel-btn:hover { border-color: #999; color: var(--text); }
+  .submit-btn { background: var(--accent); color: #fff; border: none; padding: 8px 20px; border-radius: 3px; font-size: 12px; font-weight: 600; cursor: pointer; font-family: 'DM Sans', sans-serif; letter-spacing: 0.3px; transition: background 0.15s; }
+  .submit-btn:hover { background: var(--accent-hover); }
+
+  /* USER SWITCHER */
+  .user-switcher { display: flex; align-items: center; gap: 7px; }
+  .user-avatar { width: 25px; height: 25px; border-radius: 2px; background: rgba(255,255,255,0.15); display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 700; color: #ffffff; border: 1px solid rgba(255,255,255,0.2); }
+  .user-select { background: rgba(255,255,255,0.07); border: 1px solid rgba(255,255,255,0.12); color: rgba(255,255,255,0.7); padding: 4px 8px; border-radius: 3px; font-size: 11px; font-family: 'DM Sans', sans-serif; cursor: pointer; outline: none; }
+  .user-select option { color: #111; background: #fff; }
+
+  /* SEARCH */
+  .search-bar { display: flex; align-items: center; gap: 8px; margin-bottom: 16px; }
+  .search-icon-wrap { position: relative; flex: 1; }
+  .search-icon-wrap::before { content: ''; position: absolute; left: 11px; top: 50%; transform: translateY(-50%); width: 12px; height: 12px; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%23aaa' stroke-width='2'%3E%3Ccircle cx='11' cy='11' r='7'/%3E%3Cpath stroke-linecap='round' d='M16.5 16.5L22 22'/%3E%3C/svg%3E"); background-size: contain; background-repeat: no-repeat; pointer-events: none; }
+  .search-input { flex: 1; border: 1px solid var(--border); border-radius: 3px; padding: 8px 12px 8px 32px; font-size: 13px; font-family: 'DM Sans', sans-serif; outline: none; background: #ffffff; color: var(--text); transition: border-color 0.2s; width: 100%; }
+  .search-input::placeholder { color: #cccccc; }
+  .search-input:focus { border-color: #999; }
+  .filter-select { border: 1px solid var(--border); border-radius: 3px; padding: 8px 10px; font-size: 11px; font-family: 'DM Sans', sans-serif; outline: none; background: #ffffff; color: var(--muted); cursor: pointer; }
+  .filter-select:focus { border-color: #999; }
+
+  /* TOAST */
+  .toast { position: fixed; bottom: 22px; right: 22px; background: #111111; color: #ffffff; padding: 10px 16px; border-radius: 3px; font-size: 12px; font-weight: 500; box-shadow: 0 4px 20px rgba(0,0,0,0.2); z-index: 300; animation: slideUp 0.3s ease; display: none; letter-spacing: 0.3px; }
+  @keyframes slideUp { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+  .toast.toast-success { background: #1a7a40; }
+  .toast.toast-error   { background: #9a1520; }
+  .toast.toast-warning { background: #b86c0a; }
+
+  /* INLINE EDIT */
+  .editable-title { cursor: pointer; border-radius: 2px; padding: 2px 6px; margin-left: -6px; transition: background 0.15s; }
+  .editable-title:hover { background: rgba(0,0,0,0.05); }
+  .editable-title:hover::after { content: ' ✎'; font-size: 13px; color: var(--muted); opacity: 0.5; }
+  .editable-subtitle { cursor: pointer; border-radius: 2px; padding: 2px 6px; margin-left: -6px; display: inline-block; transition: background 0.15s; }
+  .editable-subtitle:hover { background: rgba(0,0,0,0.04); }
+  .editable-subtitle:hover::after { content: ' ✎'; font-size: 9px; color: var(--muted); }
+  .inline-edit-input { font-family: 'Playfair Display', serif; font-size: 30px; font-weight: 700; color: var(--text); border: 1px solid #999; border-radius: 3px; padding: 2px 8px; outline: none; background: #fff; width: 100%; }
+  .inline-edit-sub { font-family: 'DM Sans', sans-serif; font-size: 11px; color: var(--muted); border: 1px solid var(--border); border-radius: 3px; padding: 4px 8px; outline: none; background: #fff; width: 100%; }
+
+  /* SETTINGS user rows */
+  .user-row { display: flex; align-items: center; gap: 9px; background: #f9f9f9; border: 1px solid var(--border); border-radius: 3px; padding: 9px 13px; }
+  .user-row input[type="text"] { flex: 1; border: 1px solid var(--border); border-radius: 3px; padding: 6px 9px; font-size: 12px; font-family: 'DM Sans', sans-serif; outline: none; background: #fff; color: var(--text); }
+  .user-row input[type="text"]:focus { border-color: #999; }
+  .user-row input[type="color"] { width: 30px; height: 30px; padding: 2px; border: 1px solid var(--border); border-radius: 3px; cursor: pointer; background: none; }
+  .remove-user-btn { background: none; border: none; color: #ccc; font-size: 17px; cursor: pointer; padding: 0 3px; transition: color 0.15s; flex-shrink: 0; }
+  .remove-user-btn:hover { color: var(--urgent); }
+  .user-role-input { width: 130px !important; flex: none !important; }
+
+  /* QUICK STATUS */
+  .quick-status-wrap { position: relative; display: inline-flex; }
+  .status-badge { cursor: pointer; transition: opacity 0.15s, transform 0.15s; user-select: none; }
+  .status-badge:hover { opacity: 0.75; transform: scale(0.96); }
+  .quick-status-dropdown { position: absolute; top: calc(100% + 5px); left: 0; background: #fff; border: 1px solid var(--border); border-radius: 4px; box-shadow: 0 6px 24px rgba(0,0,0,0.12); z-index: 50; min-width: 120px; overflow: hidden; animation: modalIn 0.15s ease; }
+  .quick-status-option { padding: 8px 13px; font-size: 10px; font-weight: 700; cursor: pointer; display: flex; align-items: center; gap: 7px; transition: background 0.1s; font-family: 'DM Sans', sans-serif; color: #444; letter-spacing: 0.5px; text-transform: uppercase; }
+  .quick-status-option:hover { background: #f5f5f5; color: #111; }
+  .quick-status-option .qs-dot { width: 5px; height: 5px; border-radius: 50%; flex-shrink: 0; }
+  .quick-status-option.current { background: #f0f0f0; color: #111; }
+
+  /* DELETE CONFIRM */
+  .delete-confirm-row { display: none; align-items: center; gap: 8px; background: #fce8ea; border-top: 1px solid #f0c0c4; padding: 9px 18px; font-size: 11px; color: var(--urgent); font-weight: 600; letter-spacing: 0.3px; }
+  .delete-confirm-row.show { display: flex; }
+  .del-confirm-yes { background: var(--urgent); color: #fff; border: none; padding: 4px 11px; border-radius: 3px; font-size: 11px; font-weight: 600; cursor: pointer; font-family: 'DM Sans', sans-serif; }
+  .del-confirm-yes:hover { background: #7a1018; }
+  .del-confirm-no { background: none; border: none; color: var(--muted); font-size: 11px; font-weight: 600; cursor: pointer; font-family: 'DM Sans', sans-serif; padding: 4px 6px; transition: color 0.15s; }
+  .del-confirm-no:hover { color: var(--text); }
+
+  /* RESPONSIVE */
+  @media (max-width: 900px) {
+    .stats-row { grid-template-columns: repeat(2, 1fr); }
+    .expand-grid { grid-template-columns: 1fr; }
+    .sidebar { width: 220px; }
+  }
+  @media (max-width: 640px) {
+    .sidebar { display: block !important; position: fixed; left: -280px; top: 56px; bottom: 0; z-index: 99; transition: left 0.25s ease; width: 252px !important; }
+    .sidebar.mobile-open { left: 0; box-shadow: 6px 0 32px rgba(0,0,0,0.4); }
+    .content { padding: 18px; }
+    .stats-row { grid-template-columns: repeat(2, 1fr); }
+    .hamburger-btn { display: flex; align-items: center; }
+    .topbar-right { gap: 4px; }
+    .topbar-btn { padding: 5px 7px; font-size: 10px; }
+    .search-bar { flex-wrap: wrap; }
+    .search-icon-wrap { width: 100%; flex: none; }
+  }
+  .sidebar-overlay { display: none; position: fixed; inset: 0; top: 56px; background: rgba(0,0,0,0.45); z-index: 98; }
+  .sidebar-overlay.active { display: block; }
+</style>
+</head>
+<body>
+
+<!-- LOCK SCREEN -->
+<div id="lockScreen" style="display:none;position:fixed;inset:0;background:#000000;z-index:9999;align-items:center;justify-content:center;flex-direction:column">
+  <div style="position:absolute;inset:0;opacity:0.04;background-image:repeating-linear-gradient(0deg,transparent,transparent 59px,rgba(255,255,255,0.5) 59px,rgba(255,255,255,0.5) 60px),repeating-linear-gradient(90deg,transparent,transparent 59px,rgba(255,255,255,0.5) 59px,rgba(255,255,255,0.5) 60px)"></div>
+  <div style="text-align:center;margin-bottom:40px;position:relative">
+    <div style="width:56px;height:56px;border:1px solid rgba(255,255,255,0.25);display:flex;align-items:center;justify-content:center;margin:0 auto 20px;font-family:'DM Sans',sans-serif;font-size:16px;font-weight:700;color:rgba(255,255,255,0.5);letter-spacing:1px">BW</div>
+    <div style="font-family:'Playfair Display',serif;font-size:28px;font-weight:900;color:#ffffff;letter-spacing:5px">BLACKWATCH GROUP</div>
+    <div style="font-size:9px;color:rgba(255,255,255,0.3);letter-spacing:4px;text-transform:uppercase;margin-top:10px">Intelligence · Access · Execution</div>
+  </div>
+  <div style="background:#ffffff;border-radius:4px;padding:32px 36px;width:340px;max-width:90vw;position:relative">
+    <div style="font-size:11px;font-weight:700;color:#888888;letter-spacing:2px;text-transform:uppercase;margin-bottom:5px">Credentials Required</div>
+    <div style="font-size:12px;color:#aaaaaa;margin-bottom:20px">This dashboard is restricted access.</div>
+    <input id="pwInput" type="password" placeholder="Enter password" onkeydown="if(event.key==='Enter')checkPassword()"
+      style="width:100%;border:1px solid #e0e0e0;border-radius:3px;padding:11px 13px;font-size:14px;font-family:'DM Sans',sans-serif;outline:none;margin-bottom:10px;background:#ffffff;color:#111111;transition:border-color 0.2s;"
+      onfocus="this.style.borderColor='#999'" onblur="this.style.borderColor='#e0e0e0'">
+    <div id="pwError" style="display:none;color:#9a1520;font-size:11px;margin-bottom:10px;letter-spacing:0.3px">Incorrect password. Access denied.</div>
+    <button onclick="checkPassword()"
+      style="width:100%;background:#111111;color:#ffffff;border:none;padding:12px;border-radius:3px;font-size:12px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;transition:background 0.2s;letter-spacing:2px;text-transform:uppercase"
+      onmouseover="this.style.background='#333'" onmouseout="this.style.background='#111'">
+      Unlock
+    </button>
+  </div>
+  <div style="margin-top:22px;font-size:9px;color:rgba(255,255,255,0.15);letter-spacing:2px;position:relative">BLACKWATCH GROUP — CONFIDENTIAL</div>
+</div>
+
+<!-- MAIN APP -->
+<div id="mainApp" style="display:none">
+<div class="topbar">
+  <div style="display:flex;align-items:center;gap:6px">
+    <button class="hamburger-btn" onclick="toggleSidebar()" aria-label="Toggle menu">☰</button>
+    <div class="topbar-logo">
+      <div class="bw-mark">BW</div>
+      BLACKWATCH
+      <span class="sub">Strategic Advisory</span>
+    </div>
+  </div>
+  <div class="topbar-right">
+    <div class="user-switcher">
+      <div class="user-avatar" id="currentAvatarTop">GC</div>
+      <select class="user-select" id="userSelect" onchange="switchUser(this.value)">
+        <option value="GC">GC</option>
+        <option value="George">George</option>
+        <option value="Marco">Marco</option>
+        <option value="Walid">Walid</option>
+        <option value="Ara">Ara</option>
+      </select>
+    </div>
+    <button class="topbar-btn" onclick="openSettings()">⚙ Settings</button>
+    <button class="topbar-btn" onclick="exportData()" title="Export JSON backup">⬇ JSON</button>
+    <button class="topbar-btn" onclick="exportCSV()" title="Export CSV">⬇ CSV</button>
+    <button class="topbar-btn" onclick="importData()" title="Import backup">⬆ Import</button>
+    <button class="topbar-btn" onclick="copyShareLink()">🔗 Share</button>
+    <button class="lock-btn" onclick="lockDashboard()">🔒 Lock</button>
+  </div>
+</div>
+
+<div id="sidebarOverlay" class="sidebar-overlay" onclick="toggleSidebar()"></div>
+<div class="main">
+  <aside class="sidebar">
+    <div class="sidebar-section">
+      <div class="sidebar-label">Overview</div>
+      <div class="region-tab active" onclick="setRegion('all')" id="tab-all">
+        <span class="region-dot" style="background:rgba(255,255,255,0.4)"></span>
+        All Engagements
+        <span class="region-count" id="count-all">0</span>
+      </div>
+    </div>
+
+    <div class="sidebar-section" style="padding-top:6px">
+      <div class="sidebar-label">Americas</div>
+      <div class="region-tab" onclick="setRegion('us')" id="tab-us">
+        🇺🇸 United States
+        <span class="region-count" id="count-us">0</span>
+      </div>
+    </div>
+
+    <div class="sidebar-section" style="padding-top:6px">
+      <div class="sidebar-label">Middle East</div>
+      <div class="region-tab" onclick="setRegion('middle_east')" id="tab-middle_east">
+        <span class="region-dot" style="background:rgba(255,255,255,0.35)"></span>
+        All Middle East
+        <span class="region-count" id="count-middle_east">0</span>
+      </div>
+      <div class="region-tab" onclick="setRegion('uae')" id="tab-uae" style="padding-left:22px;font-size:11px">
+        🇦🇪 UAE / Dubai
+        <span class="region-count" id="count-uae">0</span>
+      </div>
+      <div class="region-tab" onclick="setRegion('ksa')" id="tab-ksa" style="padding-left:22px;font-size:11px">
+        🇸🇦 Saudi Arabia
+        <span class="region-count" id="count-ksa">0</span>
+      </div>
+      <div class="region-tab" onclick="setRegion('qatar')" id="tab-qatar" style="padding-left:22px;font-size:11px">
+        🇶🇦 Qatar
+        <span class="region-count" id="count-qatar">0</span>
+      </div>
+      <div class="region-tab" onclick="setRegion('jordan')" id="tab-jordan" style="padding-left:22px;font-size:11px">
+        🇯🇴 Jordan
+        <span class="region-count" id="count-jordan">0</span>
+      </div>
+      <div class="region-tab" onclick="setRegion('oman')" id="tab-oman" style="padding-left:22px;font-size:11px">
+        🇴🇲 Oman
+        <span class="region-count" id="count-oman">0</span>
+      </div>
+      <div class="region-tab" onclick="setRegion('iraq')" id="tab-iraq" style="padding-left:22px;font-size:11px">
+        🇮🇶 Iraq
+        <span class="region-count" id="count-iraq">0</span>
+      </div>
+      <div class="region-tab" onclick="setRegion('yemen')" id="tab-yemen" style="padding-left:22px;font-size:11px">
+        🇾🇪 Yemen
+        <span class="region-count" id="count-yemen">0</span>
+      </div>
+    </div>
+
+    <div class="sidebar-section" style="padding-top:6px">
+      <div class="sidebar-label">Europe</div>
+      <div class="region-tab" onclick="setRegion('europe')" id="tab-europe">
+        <span class="region-dot" style="background:rgba(255,255,255,0.35)"></span>
+        Europe
+        <span class="region-count" id="count-europe">0</span>
+      </div>
+    </div>
+
+    <div class="sidebar-section" style="padding-top:6px">
+      <div class="sidebar-label">Asia Pacific</div>
+      <div class="region-tab" onclick="setRegion('asia')" id="tab-asia">
+        <span class="region-dot" style="background:rgba(255,255,255,0.35)"></span>
+        Asia Pacific
+        <span class="region-count" id="count-asia">0</span>
+      </div>
+    </div>
+
+    <div class="sidebar-section" style="padding-top:6px">
+      <div class="sidebar-label">Africa</div>
+      <div class="region-tab" onclick="setRegion('africa')" id="tab-africa">
+        <span class="region-dot" style="background:rgba(255,255,255,0.35)"></span>
+        Africa
+        <span class="region-count" id="count-africa">0</span>
+      </div>
+    </div>
+
+    <div class="sidebar-divider"></div>
+    <div class="status-legend">
+      <div class="sidebar-label">Status</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#1a7a40"></div>Active</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#1a4fa0"></div>Pipeline</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#b86c0a"></div>Stalled</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#9a1520"></div>Urgent</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#cccccc"></div>Closed</div>
+    </div>
+
+    <div class="sidebar-footer">
+      <div class="sidebar-tagline">Intelligence · Access · Execution</div>
+      <div class="sidebar-sync" id="lastSyncTime"></div>
+    </div>
+  </aside>
+
+  <main class="content">
+    <div class="content-header">
+      <div>
+        <h1 id="pageTitle" class="editable-title" onclick="inlineEditTitle(this)">All Engagements</h1>
+        <p id="pageSubtitle" class="editable-subtitle" onclick="inlineEditSubtitle(this)">Blackwatch Group — Strategic Advisory Dashboard</p>
+      </div>
+      <button class="add-project-btn" onclick="openModal()">+ Add Engagement</button>
+    </div>
+
+    <div class="stats-row" id="statsRow"></div>
+
+    <div class="search-bar">
+      <div class="search-icon-wrap">
+        <input class="search-input" type="text" placeholder="Search engagements, clients, owners…" id="searchInput" oninput="renderProjects()">
+      </div>
+      <select class="filter-select" id="statusFilter" onchange="renderProjects()">
+        <option value="">All Statuses</option>
+        <option value="active">Active</option>
+        <option value="pipeline">Pipeline</option>
+        <option value="stalled">Stalled</option>
+        <option value="urgent">Urgent</option>
+        <option value="closed">Closed</option>
+      </select>
+      <select class="filter-select" id="ownerFilter" onchange="renderProjects()">
+        <option value="">All Owners</option>
+      </select>
+      <select class="filter-select" id="sortSelect" onchange="renderProjects()">
+        <option value="created">Newest First</option>
+        <option value="oldest">Oldest First</option>
+        <option value="name">Name A–Z</option>
+        <option value="deadline">By Deadline</option>
+        <option value="progress_desc">Progress ↓</option>
+        <option value="progress_asc">Progress ↑</option>
+        <option value="status">By Status</option>
+      </select>
+    </div>
+
+    <div class="projects-grid" id="projectsGrid"></div>
+  </main>
+</div>
+
+<!-- ADD / EDIT MODAL -->
+<div class="modal-overlay" id="modalOverlay">
+  <div class="modal">
+    <div class="modal-header">
+      <h3 id="modalTitle">Add Engagement</h3>
+      <button class="modal-close" onclick="closeModal()">×</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="editProjectId">
+      <div class="form-row">
+        <label>Engagement Name *</label>
+        <input type="text" id="f_name" placeholder="e.g. Captis — ME Advisory">
+      </div>
+      <div class="form-row">
+        <label>Client</label>
+        <input type="text" id="f_client" placeholder="Client or counterpart">
+      </div>
+      <div class="form-row-half">
+        <div class="form-row">
+          <label>Region *</label>
+          <select id="f_region">
+            <option value="us">🇺🇸 United States</option>
+            <option value="uae">🇦🇪 UAE / Dubai</option>
+            <option value="ksa">🇸🇦 Saudi Arabia</option>
+            <option value="qatar">🇶🇦 Qatar</option>
+            <option value="jordan">🇯🇴 Jordan</option>
+            <option value="oman">🇴🇲 Oman</option>
+            <option value="iraq">🇮🇶 Iraq</option>
+            <option value="yemen">🇾🇪 Yemen</option>
+            <option value="middle_east">Middle East (Other)</option>
+            <option value="europe">🌍 Europe</option>
+            <option value="asia">🌏 Asia Pacific</option>
+            <option value="africa">🌍 Africa</option>
+          </select>
+        </div>
+        <div class="form-row">
+          <label>Status</label>
+          <select id="f_status">
+            <option value="pipeline">Pipeline</option>
+            <option value="active">Active</option>
+            <option value="stalled">Stalled</option>
+            <option value="urgent">Urgent</option>
+            <option value="closed">Closed</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-row-half">
+        <div class="form-row">
+          <label>Owner</label>
+          <select id="f_owner">
+            <option>GC</option>
+            <option>George</option>
+            <option>Marco</option>
+            <option>Walid</option>
+            <option>Ara</option>
+          </select>
+        </div>
+        <div class="form-row">
+          <label>Deal Value</label>
+          <input type="text" id="f_value" placeholder="e.g. $2.5M or TBD">
+        </div>
+      </div>
+      <div class="form-row-half">
+        <div class="form-row">
+          <label>Next Action Date</label>
+          <input type="date" id="f_date">
+        </div>
+        <div class="form-row">
+          <label>Progress %</label>
+          <input type="number" id="f_progress" placeholder="0–100" min="0" max="100">
+        </div>
+      </div>
+      <div class="form-row">
+        <label>Description / Notes</label>
+        <textarea id="f_desc" placeholder="Key details, strategy, current stage…"></textarea>
+      </div>
+      <div class="form-row">
+        <label>Next Steps</label>
+        <textarea id="f_nextsteps" placeholder="Immediate action items…" style="min-height:55px"></textarea>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="cancel-btn" onclick="closeModal()">Cancel</button>
+      <button class="submit-btn" onclick="saveProject()">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- SETTINGS MODAL -->
+<div class="modal-overlay" id="settingsOverlay">
+  <div class="modal" style="width:620px">
+    <div class="modal-header">
+      <h3>⚙ Dashboard Settings</h3>
+      <button class="modal-close" onclick="closeSettings()">×</button>
+    </div>
+    <div class="modal-body">
+      <div style="margin-bottom:24px">
+        <div style="font-size:10px;font-weight:700;color:#888;text-transform:uppercase;letter-spacing:2px;margin-bottom:12px;padding-bottom:6px;border-bottom:1px solid var(--border)">Dashboard Identity</div>
+        <div class="form-row-half">
+          <div class="form-row"><label>Dashboard Title</label><input type="text" id="s_dashTitle"></div>
+          <div class="form-row"><label>Subtitle</label><input type="text" id="s_dashSubtitle"></div>
+        </div>
+        <div class="form-row"><label>Brand Name (top bar)</label><input type="text" id="s_brandName"></div>
+      </div>
+      <div>
+        <div style="font-size:10px;font-weight:700;color:#888;text-transform:uppercase;letter-spacing:2px;margin-bottom:12px;padding-bottom:6px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between">
+          Team Members
+          <button onclick="addUserRow()" style="background:#111;color:#fff;border:none;padding:4px 11px;border-radius:3px;font-size:11px;cursor:pointer;font-family:'DM Sans',sans-serif;font-weight:600;">+ Add</button>
+        </div>
+        <div id="usersEditor" style="display:flex;flex-direction:column;gap:8px"></div>
+        <p style="font-size:10px;color:var(--muted);margin-top:9px">Members appear in the user switcher and owner dropdown.</p>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="cancel-btn" onclick="closeSettings()">Cancel</button>
+      <button class="submit-btn" onclick="saveSettings()">Save Settings</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ========== STATE ==========
+let currentRegion = 'all';
+let currentUser = 'GC';
+let editingId = null;
+
+const STORAGE_KEY  = 'blackwatch_projects_v1';
+const COMMENTS_KEY = 'blackwatch_comments_v1';
+const SETTINGS_KEY = 'blackwatch_settings_v1';
+
+const meGroup = ['middle_east','uae','ksa','qatar','jordan','oman','iraq','yemen'];
+
+// ========== DEFAULT SETTINGS ==========
+const defaultSettings = {
+  dashTitle:    'All Engagements',
+  dashSubtitle: 'Blackwatch Group — Strategic Advisory Dashboard',
+  brandName:    'BLACKWATCH',
+  users: [
+    { name:'GC',     color:'#111111', role:'Managing Partner' },
+    { name:'George', color:'#1a4fa0', role:'Managing Partner' },
+    { name:'Marco',  color:'#5a3db0', role:'Chief Operating Officer' },
+    { name:'Walid',  color:'#1a7a40', role:'Business Development' },
+    { name:'Ara',    color:'#b86c0a', role:'Strategy' }
+  ]
+};
+
+// ========== SEED DATA ==========
+const seedProjects = [
+  { id:'bw1', name:'Captis', client:'TBD', region:'uae', status:'pipeline', owner:'GC', value:'TBD', date:'', progress:0, desc:'Strategic advisory engagement in the UAE.', nextsteps:'Define full scope. Identify key government and institutional contacts.', created: Date.now() },
+  { id:'bw2', name:'Lima System', client:'TBD', region:'uae', status:'pipeline', owner:'GC', value:'TBD', date:'', progress:0, desc:'Lima System project engagement in the UAE.', nextsteps:'Identify stakeholders. Review technical and regulatory requirements.', created: Date.now() - 86400000 },
+  { id:'bw3', name:'Border Security', client:'TBD', region:'middle_east', status:'pipeline', owner:'GC', value:'TBD', date:'', progress:0, desc:'Border security advisory and technology deployment engagement in the Middle East.', nextsteps:'Map relevant government contacts. Review existing infrastructure and procurement channels.', created: Date.now() - 172800000 },
+  { id:'bw4', name:'Tattoo License', client:'TBD', region:'uae', status:'pipeline', owner:'GC', value:'TBD', date:'', progress:0, desc:'Tattoo licensing and regulatory advisory engagement in Dubai.', nextsteps:'Review Dubai DED licensing requirements. Identify regulatory contacts.', created: Date.now() - 259200000 },
+  { id:'bw5', name:'Tristan Thompson — Basketball Contract', client:'Tristan Thompson', region:'uae', status:'active', owner:'GC', value:'TBD', date:'', progress:20, desc:'Basketball contract advisory and representation for Tristan Thompson in Dubai.', nextsteps:'Confirm contract terms and timelines. Engage Dubai Basketball Federation and local clubs.', created: Date.now() - 345600000 },
+  { id:'bw6', name:'Intel Project', client:'TBD', region:'uae', status:'pipeline', owner:'GC', value:'TBD', date:'', progress:0, desc:'Intelligence advisory engagement in the UAE.', nextsteps:'Clarify scope. Identify UAE-side institutional counterparts.', created: Date.now() - 432000000 },
+  { id:'bw7', name:'Harmattan AI', client:'TBD', region:'middle_east', status:'pipeline', owner:'GC', value:'TBD', date:'', progress:0, desc:'AI advisory and deployment engagement spanning the Middle East and Europe. Dual-region strategy with distinct market entry tracks for each geography.', nextsteps:'Define regional strategy for ME and Europe. Identify AI infrastructure partners. Schedule kick-off.', created: Date.now() - 518400000 }
+];
+
+// ========== STORAGE ==========
+async function loadProjects() { try { const r = localStorage.getItem(STORAGE_KEY); return r ? JSON.parse(r) : seedProjects; } catch { return seedProjects; } }
+async function saveProjects(p) { try { localStorage.setItem(STORAGE_KEY, JSON.stringify(p)); } catch(e) { console.error(e); } }
+async function loadComments() { try { const r = localStorage.getItem(COMMENTS_KEY); return r ? JSON.parse(r) : {}; } catch { return {}; } }
+async function saveComments(c) { try { localStorage.setItem(COMMENTS_KEY, JSON.stringify(c)); } catch(e) { console.error(e); } }
+async function loadSettings() { try { const r = localStorage.getItem(SETTINGS_KEY); return r ? JSON.parse(r) : defaultSettings; } catch { return defaultSettings; } }
+async function saveSettingsData(s) { try { localStorage.setItem(SETTINGS_KEY, JSON.stringify(s)); } catch(e) { console.error(e); } }
+
+// ========== EXPORT / IMPORT ==========
+function exportData() {
+  const data = { projects: localStorage.getItem(STORAGE_KEY), comments: localStorage.getItem(COMMENTS_KEY), settings: localStorage.getItem(SETTINGS_KEY), exportedAt: new Date().toISOString() };
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([JSON.stringify(data, null, 2)], { type:'application/json' }));
+  a.download = 'blackwatch-backup-' + new Date().toISOString().slice(0,10) + '.json';
+  a.click(); showToast('Data exported ✓');
+}
+function importData() {
+  const input = document.createElement('input'); input.type='file'; input.accept='.json';
+  input.onchange = e => {
+    const file = e.target.files[0]; if (!file) return;
+    const reader = new FileReader();
+    reader.onload = ev => {
+      try {
+        const data = JSON.parse(ev.target.result);
+        if (data.projects) localStorage.setItem(STORAGE_KEY, data.projects);
+        if (data.comments) localStorage.setItem(COMMENTS_KEY, data.comments);
+        if (data.settings) localStorage.setItem(SETTINGS_KEY, data.settings);
+        showToast('Imported ✓ — reloading…');
+        setTimeout(() => location.reload(), 1200);
+      } catch { showToast('Invalid file', 'error'); }
+    };
+    reader.readAsText(file);
+  };
+  input.click();
+}
+
+// ========== SETTINGS ==========
+function applySettings(s) {
+  const sub = document.getElementById('pageSubtitle');
+  if (sub && !sub.querySelector('input')) sub.textContent = s.dashSubtitle || defaultSettings.dashSubtitle;
+  const sel = document.getElementById('userSelect');
+  sel.innerHTML = s.users.map(u => `<option value="${u.name}">${u.name}${u.role?' — '+u.role:''}</option>`).join('');
+  const fowner = document.getElementById('f_owner');
+  if (fowner) fowner.innerHTML = s.users.map(u => `<option value="${u.name}">${u.name}</option>`).join('');
+}
+
+// ========== RENDER ==========
+async function render() {
+  const [projects, comments, settings] = await Promise.all([loadProjects(), loadComments(), loadSettings()]);
+  applySettings(settings);
+
+  document.getElementById('count-all').textContent = projects.length;
+  document.getElementById('count-us').textContent = projects.filter(p => p.region==='us').length;
+  document.getElementById('count-middle_east').textContent = projects.filter(p => meGroup.includes(p.region)).length;
+  document.getElementById('count-europe').textContent = projects.filter(p => p.region==='europe').length;
+  document.getElementById('count-asia').textContent = projects.filter(p => p.region==='asia').length;
+  document.getElementById('count-africa').textContent = projects.filter(p => p.region==='africa').length;
+  ['uae','ksa','qatar','jordan','oman','iraq','yemen'].forEach(r => {
+    const el = document.getElementById('count-'+r); if (el) el.textContent = projects.filter(p => p.region===r).length;
+  });
+
+  let filtered = getFilteredByRegion(projects);
+  document.getElementById('statsRow').innerHTML = `
+    <div class="stat-card s-total"><div class="stat-card-header"><div class="stat-num">${filtered.length}</div><div class="stat-icon">◈</div></div><div class="stat-label">Total</div></div>
+    <div class="stat-card s-active"><div class="stat-card-header"><div class="stat-num">${filtered.filter(p=>p.status==='active').length}</div><div class="stat-icon">●</div></div><div class="stat-label">Active</div></div>
+    <div class="stat-card s-urgent"><div class="stat-card-header"><div class="stat-num">${filtered.filter(p=>p.status==='urgent').length}</div><div class="stat-icon">▲</div></div><div class="stat-label">Urgent</div></div>
+    <div class="stat-card s-pipeline"><div class="stat-card-header"><div class="stat-num">${filtered.filter(p=>p.status==='pipeline').length}</div><div class="stat-icon">◉</div></div><div class="stat-label">Pipeline</div></div>
+    <div class="stat-card s-stalled"><div class="stat-card-header"><div class="stat-num">${filtered.filter(p=>p.status==='stalled').length}</div><div class="stat-icon">⏸</div></div><div class="stat-label">Stalled</div></div>
+  `;
+
+  renderProjects(projects, comments, settings);
+  document.getElementById('lastSyncTime').textContent = 'Synced ' + new Date().toLocaleTimeString();
+}
+
+function getFilteredByRegion(projects) {
+  if (currentRegion === 'all') return projects;
+  if (currentRegion === 'middle_east') return projects.filter(p => meGroup.includes(p.region));
+  return projects.filter(p => p.region === currentRegion);
+}
+
+function renderProjects(projects, comments, settings) {
+  if (!projects) { render(); return; }
+  const search  = document.getElementById('searchInput').value.toLowerCase();
+  const statusF = document.getElementById('statusFilter').value;
+  const ownerF  = document.getElementById('ownerFilter')?.value || '';
+  const sortBy  = document.getElementById('sortSelect')?.value || 'created';
+
+  const ownerSel = document.getElementById('ownerFilter');
+  if (ownerSel && settings?.users) {
+    const prev = ownerSel.value;
+    ownerSel.innerHTML = '<option value="">All Owners</option>' + settings.users.map(u => `<option value="${u.name}">${u.name}</option>`).join('');
+    if (prev) ownerSel.value = prev;
+  }
+
+  let list = getFilteredByRegion(projects);
+  if (search)  list = list.filter(p => (p.name+p.client+p.owner+p.desc).toLowerCase().includes(search));
+  if (statusF) list = list.filter(p => p.status === statusF);
+  if (ownerF)  list = list.filter(p => p.owner === ownerF);
+
+  const statusOrder = { urgent:0, active:1, pipeline:2, stalled:3, closed:4 };
+  list = list.sort((a,b) => {
+    switch(sortBy) {
+      case 'oldest': return a.created - b.created;
+      case 'name':   return a.name.localeCompare(b.name);
+      case 'deadline': if (!a.date&&!b.date) return 0; if (!a.date) return 1; if (!b.date) return -1; return new Date(a.date)-new Date(b.date);
+      case 'progress_desc': return (parseInt(b.progress)||0)-(parseInt(a.progress)||0);
+      case 'progress_asc':  return (parseInt(a.progress)||0)-(parseInt(b.progress)||0);
+      case 'status': return (statusOrder[a.status]??99)-(statusOrder[b.status]??99);
+      default: return b.created - a.created;
+    }
+  });
+
+  const grid = document.getElementById('projectsGrid');
+  if (!list.length) { grid.innerHTML = `<div class="empty-state"><h3>No engagements found</h3><p>Adjust filters or add a new engagement.</p></div>`; return; }
+
+  const regionLabels = { middle_east:'Middle East', uae:'🇦🇪 UAE', ksa:'🇸🇦 KSA', qatar:'🇶🇦 Qatar', jordan:'🇯🇴 Jordan', oman:'🇴🇲 Oman', iraq:'🇮🇶 Iraq', yemen:'🇾🇪 Yemen', us:'🇺🇸 USA', europe:'🌍 Europe', asia:'🌏 Asia', africa:'🌍 Africa' };
+  const userMap = {};
+  if (settings?.users) settings.users.forEach(u => { userMap[u.name] = u.color; });
+
+  grid.innerHTML = list.map(p => {
+    const pc = comments[p.id] || [];
+    const prog = parseInt(p.progress) || 0;
+    const progClass = prog >= 70 ? '' : prog >= 40 ? 'dark' : 'orange';
+    const daysUntil = p.date ? Math.ceil((new Date(p.date)-new Date())/86400000) : null;
+    const dateStr = p.date ? (daysUntil<=0?`<span style="color:var(--urgent)">Overdue</span>`:daysUntil<=7?`<span style="color:var(--warning)">In ${daysUntil}d</span>`:new Date(p.date).toLocaleDateString('en-US',{month:'short',day:'numeric'})) : '—';
+    const ownerColor = userMap[p.owner] || '#888';
+
+    return `
+    <div class="project-card status-${p.status}" id="card-${p.id}">
+      <div class="project-header" onclick="toggleExpand('${p.id}')">
+        <div class="project-main">
+          <div class="project-title-row">
+            <span class="project-name editable-inline" id="pname-${p.id}" onclick="event.stopPropagation();inlineEditProjectName('${p.id}',this)">${p.name}</span>
+            <div class="quick-status-wrap">
+              <span class="status-badge badge-${p.status}" onclick="event.stopPropagation();quickStatusChange('${p.id}','${p.status}',this)">${p.status}</span>
+            </div>
+            <span style="font-size:10px;color:#666;background:#f0f0f0;padding:2px 8px;border-radius:2px;font-weight:500;letter-spacing:0.3px">${regionLabels[p.region]||p.region}</span>
+          </div>
+          <div class="project-client" id="pclient-${p.id}" onclick="event.stopPropagation();inlineEditProjectClient('${p.id}',this)" style="cursor:pointer">${p.client||'—'}</div>
+          <div class="project-meta">
+            <div class="meta-item">👤 <strong style="color:${ownerColor}">${p.owner||'—'}</strong></div>
+            <div class="meta-item">💰 <strong>${p.value||'TBD'}</strong></div>
+            <div class="meta-item">📅 ${dateStr}</div>
+            <div class="meta-item">💬 <strong>${pc.length}</strong></div>
+          </div>
+          ${prog>0?`<div style="margin-top:9px"><div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:3px"><span style="font-size:9px;color:var(--muted);letter-spacing:1px;text-transform:uppercase">Progress</span><span style="font-size:10px;font-weight:600;color:var(--text)">${prog}%</span></div><div class="progress-bar"><div class="progress-fill ${progClass}" style="width:${prog}%"></div></div></div>`:''}
+        </div>
+        <div class="project-actions" onclick="event.stopPropagation()">
+          <button class="action-btn" onclick="editProject('${p.id}')">Edit</button>
+          <button class="action-btn danger" onclick="deleteProject('${p.id}')">Delete</button>
+        </div>
+      </div>
+      <div id="del-confirm-${p.id}" class="delete-confirm-row" onclick="event.stopPropagation()">
+        Delete this engagement?
+        <button class="del-confirm-yes" onclick="doDeleteProject('${p.id}')">Yes, Delete</button>
+        <button class="del-confirm-no" onclick="document.getElementById('del-confirm-${p.id}').classList.remove('show')">Cancel</button>
+      </div>
+      <div class="project-expand" id="expand-${p.id}">
+        <div class="expand-grid">
+          <div class="expand-section">
+            <h4>Description</h4>
+            <p id="pdesc-${p.id}" class="editable-field" onclick="inlineEditField('${p.id}','desc',this)">${p.desc||'No description.'}</p>
+          </div>
+          <div class="expand-section">
+            <h4>Next Steps</h4>
+            <p id="pnext-${p.id}" class="editable-field" onclick="inlineEditField('${p.id}','nextsteps',this)">${p.nextsteps||'No next steps defined.'}</p>
+          </div>
+          <div class="expand-section comments-area">
+            <h4>Comments & Updates (${pc.length})</h4>
+            <div class="comment-thread">
+              <div id="comments-${p.id}">
+                ${pc.length===0?'<p style="font-size:12px;color:var(--muted);text-align:center;padding:10px 0">No comments yet.</p>':pc.map(c=>`<div class="comment-item"><div class="comment-avatar" style="background:${userMap[c.user]||'#111'}">${c.user.slice(0,2).toUpperCase()}</div><div class="comment-body"><div class="comment-meta"><strong>${c.user}</strong> · ${timeAgo(c.ts)}</div><div class="comment-text">${escapeHtml(c.text)}</div></div></div>`).join('')}
+              </div>
+              <div class="comment-input-row">
+                <textarea class="comment-input" id="ci-${p.id}" placeholder="Add update…" rows="2"></textarea>
+                <button class="post-btn" onclick="postComment('${p.id}')">Post</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ========== INLINE EDITING ==========
+document.addEventListener('DOMContentLoaded', () => {
+  document.head.insertAdjacentHTML('beforeend', `<style>
+    .editable-inline { cursor:pointer; border-radius:2px; padding:1px 4px; margin:-1px -4px; }
+    .editable-inline:hover { background:rgba(0,0,0,0.05); outline:1px dashed #ccc; }
+    .editable-field { cursor:pointer; border-radius:2px; padding:2px 4px; margin:-2px -4px; }
+    .editable-field:hover { background:rgba(0,0,0,0.04); outline:1px dashed #ddd; }
+    .project-client:hover { color:#333 !important; }
+  </style>`);
+});
+
+function inlineEditTitle(el) {
+  if (el.querySelector('input')) return;
+  const cur = el.textContent;
+  const input = document.createElement('input'); input.className='inline-edit-input'; input.value=cur;
+  el.innerHTML=''; el.appendChild(input); input.focus(); input.select();
+  const finish = async () => { const val=input.value.trim()||cur; el.textContent=val; const s=await loadSettings(); s.dashTitle=val; await saveSettingsData(s); showToast('Saved ✓'); };
+  input.addEventListener('blur', finish);
+  input.addEventListener('keydown', e => { if(e.key==='Enter') input.blur(); if(e.key==='Escape') el.textContent=cur; });
+}
+
+function inlineEditSubtitle(el) {
+  if (el.querySelector('input')) return;
+  const cur = el.textContent;
+  const input = document.createElement('input'); input.className='inline-edit-sub'; input.value=cur;
+  el.innerHTML=''; el.appendChild(input); input.focus(); input.select();
+  const finish = async () => { const val=input.value.trim()||cur; el.textContent=val; const s=await loadSettings(); s.dashSubtitle=val; await saveSettingsData(s); showToast('Saved ✓'); };
+  input.addEventListener('blur', finish);
+  input.addEventListener('keydown', e => { if(e.key==='Enter') input.blur(); if(e.key==='Escape') el.textContent=cur; });
+}
+
+async function inlineEditProjectName(id, el) {
+  if (el.querySelector('input')) return;
+  const cur = el.textContent;
+  const input = document.createElement('input');
+  Object.assign(input.style, {fontSize:'14px',fontWeight:'600',fontFamily:'DM Sans,sans-serif',border:'1px solid #999',borderRadius:'3px',padding:'2px 6px',outline:'none',width:'260px',maxWidth:'100%',background:'#fff',color:'#111'});
+  el.innerHTML=''; el.appendChild(input); input.value=cur; input.focus(); input.select();
+  const finish = async () => { const val=input.value.trim()||cur; el.textContent=val; const projects=await loadProjects(); const idx=projects.findIndex(p=>p.id===id); if(idx!==-1){projects[idx].name=val; await saveProjects(projects);} showToast('Renamed ✓'); };
+  input.addEventListener('blur', finish);
+  input.addEventListener('keydown', e => { if(e.key==='Enter') input.blur(); if(e.key==='Escape') el.textContent=cur; });
+}
+
+async function inlineEditProjectClient(id, el) {
+  if (el.querySelector('input')) return;
+  const cur = el.textContent;
+  const input = document.createElement('input');
+  Object.assign(input.style, {fontSize:'11px',fontFamily:'DM Sans,sans-serif',border:'1px solid #999',borderRadius:'3px',padding:'2px 6px',outline:'none',width:'180px',color:'#888',background:'#fff'});
+  el.innerHTML=''; el.appendChild(input); input.value=cur==='—'?'':cur; input.focus(); input.select();
+  const finish = async () => { const val=input.value.trim()||cur; el.textContent=val; const projects=await loadProjects(); const idx=projects.findIndex(p=>p.id===id); if(idx!==-1){projects[idx].client=val; await saveProjects(projects);} showToast('Updated ✓'); };
+  input.addEventListener('blur', finish);
+  input.addEventListener('keydown', e => { if(e.key==='Enter') input.blur(); if(e.key==='Escape') el.textContent=cur; });
+}
+
+async function inlineEditField(id, field, el) {
+  if (el.querySelector('textarea')) return;
+  const cur = el.textContent;
+  const ta = document.createElement('textarea');
+  Object.assign(ta.style, {width:'100%',fontSize:'13px',fontFamily:'DM Sans,sans-serif',border:'1px solid #999',borderRadius:'3px',padding:'6px 8px',outline:'none',resize:'vertical',lineHeight:'1.6',minHeight:'70px',background:'#fff',color:'#444'});
+  el.innerHTML=''; el.appendChild(ta); ta.value=cur; ta.focus(); ta.select();
+  const finish = async () => { const val=ta.value.trim()||cur; el.textContent=val; const projects=await loadProjects(); const idx=projects.findIndex(p=>p.id===id); if(idx!==-1){projects[idx][field]=val; await saveProjects(projects);} showToast('Saved ✓'); };
+  ta.addEventListener('blur', finish);
+  ta.addEventListener('keydown', e => { if(e.key==='Escape') el.textContent=cur; });
+}
+
+// ========== SETTINGS MODAL ==========
+let settingsUserRows = [];
+async function openSettings() {
+  const s = await loadSettings();
+  document.getElementById('s_dashTitle').value = s.dashTitle||'';
+  document.getElementById('s_dashSubtitle').value = s.dashSubtitle||'';
+  document.getElementById('s_brandName').value = s.brandName||'';
+  settingsUserRows = JSON.parse(JSON.stringify(s.users));
+  renderUserRows();
+  document.getElementById('settingsOverlay').classList.add('open');
+}
+function renderUserRows() {
+  document.getElementById('usersEditor').innerHTML = settingsUserRows.map((u,i) => `
+    <div class="user-row" id="urow-${i}">
+      <input type="color" value="${u.color}" onchange="settingsUserRows[${i}].color=this.value" style="width:30px;height:30px;border-radius:50%;border:1px solid #ddd;cursor:pointer;padding:2px;background:none">
+      <input type="text" value="${u.name}" placeholder="Name" onchange="settingsUserRows[${i}].name=this.value" style="flex:1">
+      <input type="text" value="${u.role||''}" placeholder="Role (optional)" onchange="settingsUserRows[${i}].role=this.value" class="user-role-input" style="flex:1.2">
+      <button class="remove-user-btn" onclick="removeUserRow(${i})">×</button>
+    </div>`).join('');
+}
+function addUserRow() {
+  settingsUserRows.push({ name:'', color:'#111111', role:'' }); renderUserRows();
+  setTimeout(() => { const rows=document.querySelectorAll('.user-row'); const last=rows[rows.length-1]; if(last) last.querySelectorAll('input[type="text"]')[0]?.focus(); }, 50);
+}
+function removeUserRow(i) {
+  if (settingsUserRows.length<=1) { showToast('Must have at least one member'); return; }
+  settingsUserRows.splice(i,1); renderUserRows();
+}
+document.addEventListener('input', e => {
+  const row = e.target.closest('.user-row'); if (!row) return;
+  const idx = parseInt(row.id.replace('urow-',''));
+  const inputs = row.querySelectorAll('input[type="text"]');
+  if (e.target===inputs[0]) settingsUserRows[idx].name=e.target.value;
+  if (e.target===inputs[1]) settingsUserRows[idx].role=e.target.value;
+});
+async function saveSettings() {
+  const users = [];
+  document.querySelectorAll('.user-row').forEach(row => {
+    const color=row.querySelector('input[type="color"]').value;
+    const texts=row.querySelectorAll('input[type="text"]');
+    const name=texts[0].value.trim(); const role=texts[1]?.value.trim()||'';
+    if (name) users.push({name,color,role});
+  });
+  if (!users.length) { showToast('Add at least one team member'); return; }
+  const s = { dashTitle:document.getElementById('s_dashTitle').value.trim(), dashSubtitle:document.getElementById('s_dashSubtitle').value.trim(), brandName:document.getElementById('s_brandName').value.trim(), users };
+  await saveSettingsData(s); closeSettings(); showToast('Settings saved ✓'); render();
+}
+function closeSettings() { document.getElementById('settingsOverlay').classList.remove('open'); }
+
+// ========== PROJECT ACTIONS ==========
+function toggleExpand(id) { document.getElementById('expand-'+id).classList.toggle('open'); }
+
+async function postComment(projectId) {
+  const input = document.getElementById('ci-'+projectId);
+  const text = input.value.trim(); if (!text) return;
+  const comments = await loadComments();
+  if (!comments[projectId]) comments[projectId]=[];
+  comments[projectId].push({ id:'c'+Date.now(), user:currentUser, text, ts:Date.now() });
+  await saveComments(comments); input.value=''; showToast('Posted ✓');
+  await render(); document.getElementById('expand-'+projectId)?.classList.add('open');
+}
+
+function deleteProject(id) {
+  document.querySelectorAll('.delete-confirm-row.show').forEach(el => { if(el.id!=='del-confirm-'+id) el.classList.remove('show'); });
+  document.getElementById('del-confirm-'+id)?.classList.toggle('show');
+}
+async function doDeleteProject(id) {
+  const p = await loadProjects(); await saveProjects(p.filter(x=>x.id!==id)); showToast('Deleted'); render();
+}
+
+function editProject(id) {
+  loadProjects().then(async projects => {
+    const p = projects.find(x=>x.id===id); if (!p) return;
+    editingId=id;
+    document.getElementById('modalTitle').textContent='Edit Engagement';
+    document.getElementById('editProjectId').value=id;
+    document.getElementById('f_name').value=p.name||'';
+    document.getElementById('f_client').value=p.client||'';
+    document.getElementById('f_region').value=p.region||'middle_east';
+    document.getElementById('f_status').value=p.status||'pipeline';
+    const s=await loadSettings();
+    const fowner=document.getElementById('f_owner');
+    fowner.innerHTML=s.users.map(u=>`<option value="${u.name}">${u.name}</option>`).join('');
+    fowner.value=p.owner||s.users[0].name;
+    document.getElementById('f_value').value=p.value||'';
+    document.getElementById('f_date').value=p.date||'';
+    document.getElementById('f_progress').value=p.progress||'';
+    document.getElementById('f_desc').value=p.desc||'';
+    document.getElementById('f_nextsteps').value=p.nextsteps||'';
+    document.getElementById('modalOverlay').classList.add('open');
+  });
+}
+
+async function saveProject() {
+  const name = document.getElementById('f_name').value.trim();
+  if (!name) { alert('Engagement name is required.'); return; }
+  const projects = await loadProjects();
+  const id = editingId||'p'+Date.now();
+  const data = { id, name, client:document.getElementById('f_client').value.trim(), region:document.getElementById('f_region').value, status:document.getElementById('f_status').value, owner:document.getElementById('f_owner').value, value:document.getElementById('f_value').value.trim(), date:document.getElementById('f_date').value, progress:document.getElementById('f_progress').value, desc:document.getElementById('f_desc').value.trim(), nextsteps:document.getElementById('f_nextsteps').value.trim(), created:Date.now() };
+  if (editingId) { const idx=projects.findIndex(p=>p.id===editingId); if(idx!==-1){data.created=projects[idx].created; projects[idx]=data;} }
+  else projects.unshift(data);
+  await saveProjects(projects); closeModal(); showToast(editingId?'Updated ✓':'Added ✓'); editingId=null; render();
+}
+
+async function openModal() {
+  editingId=null;
+  document.getElementById('modalTitle').textContent='Add Engagement';
+  ['f_name','f_client','f_value','f_date','f_progress','f_desc','f_nextsteps'].forEach(id=>document.getElementById(id).value='');
+  const singleRegions=['us','uae','ksa','qatar','jordan','oman','iraq','yemen','europe','asia','africa'];
+  document.getElementById('f_region').value=singleRegions.includes(currentRegion)?currentRegion:'middle_east';
+  document.getElementById('f_status').value='pipeline';
+  const s=await loadSettings();
+  const fowner=document.getElementById('f_owner');
+  fowner.innerHTML=s.users.map(u=>`<option value="${u.name}">${u.name}</option>`).join('');
+  fowner.value=currentUser;
+  document.getElementById('modalOverlay').classList.add('open');
+}
+function closeModal() { document.getElementById('modalOverlay').classList.remove('open'); }
+
+function setRegion(r) {
+  currentRegion=r;
+  document.querySelectorAll('.region-tab').forEach(t=>t.classList.remove('active'));
+  document.getElementById('tab-'+r).classList.add('active');
+  const labels = { all:'All Engagements', us:'United States', middle_east:'Middle East', uae:'UAE / Dubai', ksa:'Saudi Arabia', qatar:'Qatar', jordan:'Jordan', oman:'Oman', iraq:'Iraq', yemen:'Yemen', europe:'Europe', asia:'Asia Pacific', africa:'Africa' };
+  document.getElementById('pageTitle').textContent=labels[r]||r;
+  render();
+}
+
+function switchUser(u) { currentUser=u; document.getElementById('currentAvatarTop').textContent=u.slice(0,2).toUpperCase(); }
+function copyShareLink() { navigator.clipboard.writeText(window.location.href).then(()=>showToast('Link copied ✓')).catch(()=>showToast('Copy the URL from your browser')); }
+
+// ========== HELPERS ==========
+function timeAgo(ts) { const d=Date.now()-ts; if(d<60000) return 'just now'; if(d<3600000) return Math.floor(d/60000)+'m ago'; if(d<86400000) return Math.floor(d/3600000)+'h ago'; return Math.floor(d/86400000)+'d ago'; }
+function escapeHtml(t) { return t.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function showToast(msg, type='') { const t=document.getElementById('toast'); t.textContent=msg; t.className='toast'+(type?' toast-'+type:''); t.style.display='block'; clearTimeout(t._timer); t._timer=setTimeout(()=>{t.style.display='none';},3000); }
+
+function lockDashboard() { sessionStorage.removeItem('blackwatch_auth_v1'); location.reload(); }
+function toggleSidebar() { document.querySelector('.sidebar').classList.toggle('mobile-open'); document.getElementById('sidebarOverlay').classList.toggle('active'); }
+
+// ========== QUICK STATUS ==========
+function quickStatusChange(id, currentStatus, badgeEl) {
+  const existing=document.querySelector('.quick-status-dropdown');
+  if (existing) { existing.remove(); if(existing.dataset.forId===id) return; }
+  const statuses=[{value:'pipeline',label:'Pipeline',color:'#1a4fa0'},{value:'active',label:'Active',color:'#1a7a40'},{value:'stalled',label:'Stalled',color:'#b86c0a'},{value:'urgent',label:'Urgent',color:'#9a1520'},{value:'closed',label:'Closed',color:'#ccc'}];
+  const dropdown=document.createElement('div'); dropdown.className='quick-status-dropdown'; dropdown.dataset.forId=id;
+  statuses.forEach(s => {
+    const opt=document.createElement('div'); opt.className='quick-status-option'+(s.value===currentStatus?' current':'');
+    opt.innerHTML=`<span class="qs-dot" style="background:${s.color}"></span>${s.label}${s.value===currentStatus?' ✓':''}`;
+    opt.onclick=async e => { e.stopPropagation(); const projects=await loadProjects(); const idx=projects.findIndex(p=>p.id===id); if(idx!==-1){projects[idx].status=s.value; await saveProjects(projects);} dropdown.remove(); showToast(`→ ${s.label} ✓`); render(); };
+    dropdown.appendChild(opt);
+  });
+  badgeEl.closest('.quick-status-wrap')?.appendChild(dropdown);
+  setTimeout(()=>{ document.addEventListener('click',function closeQS(e){if(!dropdown.contains(e.target)){dropdown.remove();document.removeEventListener('click',closeQS);}});},10);
+}
+
+// ========== CSV EXPORT ==========
+async function exportCSV() {
+  const projects=await loadProjects();
+  const headers=['ID','Name','Client','Region','Status','Owner','Value','Deadline','Progress %','Description','Next Steps','Created'];
+  const rows=projects.map(p=>[p.id,p.name,p.client,p.region,p.status,p.owner,p.value,p.date,p.progress,(p.desc||'').replace(/,/g,'·').replace(/\n/g,' '),(p.nextsteps||'').replace(/,/g,'·').replace(/\n/g,' '),new Date(p.created).toISOString().slice(0,10)].map(v=>`"${(v??'').toString().replace(/"/g,'""')}"`));
+  const csv=[headers,...rows].map(r=>r.join(',')).join('\n');
+  const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'})); a.download='blackwatch-engagements-'+new Date().toISOString().slice(0,10)+'.csv'; a.click(); showToast('CSV exported ✓','success');
+}
+
+// ========== KEYBOARD SHORTCUTS ==========
+document.addEventListener('keydown', e => {
+  if (['INPUT','TEXTAREA','SELECT'].includes(e.target.tagName)) return;
+  if ((e.key==='n'||e.key==='N')&&!e.ctrlKey&&!e.metaKey) { if(!document.getElementById('modalOverlay').classList.contains('open')&&!document.getElementById('settingsOverlay').classList.contains('open')) openModal(); }
+  if (e.key==='Escape') { closeModal(); closeSettings(); document.querySelector('.quick-status-dropdown')?.remove(); document.querySelectorAll('.delete-confirm-row.show').forEach(el=>el.classList.remove('show')); document.querySelector('.sidebar')?.classList.remove('mobile-open'); document.getElementById('sidebarOverlay')?.classList.remove('active'); }
+});
+
+document.getElementById('modalOverlay').addEventListener('click', e=>{ if(e.target===e.currentTarget) closeModal(); });
+document.getElementById('settingsOverlay').addEventListener('click', e=>{ if(e.target===e.currentTarget) closeSettings(); });
+
+render();
+</script>
+</div>
+
+<script>
+const AUTH_KEY = 'blackwatch_auth_v1';
+
+// Per-user passwords: initials@BW2026!
+const USER_PASSWORDS = {
+  'GC@BW2026!':  'GC',
+  'GB@BW2026!':  'George',
+  'MT@BW2026!':  'Marco',
+  'WG@BW2026!':  'Walid',
+  'AR@BW2026!':  'Ara'
+};
+
+function checkPassword() {
+  const val = document.getElementById('pwInput').value;
+  const matchedUser = USER_PASSWORDS[val];
+  if (matchedUser) {
+    sessionStorage.setItem(AUTH_KEY, matchedUser);
+    currentUser = matchedUser;
+    document.getElementById('lockScreen').style.display = 'none';
+    document.getElementById('mainApp').style.display = 'block';
+    document.getElementById('pwError').style.display = 'none';
+    // Sync user switcher
+    const sel = document.getElementById('userSelect');
+    if (sel) sel.value = matchedUser;
+    const av = document.getElementById('currentAvatarTop');
+    if (av) av.textContent = matchedUser.slice(0,2).toUpperCase();
+    render();
+  } else {
+    document.getElementById('pwError').style.display = 'block';
+    document.getElementById('pwInput').value = '';
+    document.getElementById('pwInput').focus();
+    document.getElementById('pwInput').style.borderColor = '#9a1520';
+    setTimeout(() => { document.getElementById('pwInput').style.borderColor = '#e0e0e0'; }, 1500);
+  }
+}
+
+(function() {
+  const savedUser = sessionStorage.getItem(AUTH_KEY);
+  if (savedUser && USER_PASSWORDS[savedUser + '@BW2026!'] !== undefined || Object.values(USER_PASSWORDS).includes(savedUser)) {
+    currentUser = savedUser;
+    document.getElementById('lockScreen').style.display = 'none';
+    document.getElementById('mainApp').style.display = 'block';
+    const sel = document.getElementById('userSelect');
+    if (sel) sel.value = savedUser;
+    const av = document.getElementById('currentAvatarTop');
+    if (av) av.textContent = savedUser.slice(0,2).toUpperCase();
+  } else {
+    document.getElementById('lockScreen').style.display = 'flex';
+    setTimeout(() => document.getElementById('pwInput').focus(), 100);
+  }
+})();
+</script>
+</body>
+</html>
