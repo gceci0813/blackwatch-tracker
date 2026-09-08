@@ -307,15 +307,69 @@
     .sidebar { width: 220px; }
   }
   @media (max-width: 640px) {
-    .sidebar { display: block !important; position: fixed; left: -280px; top: 56px; bottom: 0; z-index: 99; transition: left 0.25s ease; width: 252px !important; }
-    .sidebar.mobile-open { left: 0; box-shadow: 6px 0 32px rgba(0,0,0,0.4); }
-    .content { padding: 18px; }
-    .stats-row { grid-template-columns: repeat(2, 1fr); }
-    .hamburger-btn { display: flex; align-items: center; }
-    .topbar-right { gap: 4px; }
-    .topbar-btn { padding: 5px 7px; font-size: 10px; }
-    .search-bar { flex-wrap: wrap; }
+    /* Sidebar: slide in from left */
+    .sidebar { display: block !important; position: fixed; left: -290px; top: 56px; bottom: 0; z-index: 99; transition: left 0.28s ease; width: 272px !important; }
+    .sidebar.mobile-open { left: 0; box-shadow: 8px 0 40px rgba(0,0,0,0.5); }
+
+    /* Region tabs — bigger touch targets */
+    .region-tab { padding: 13px 13px; font-size: 15px; }
+    .sidebar-label { font-size: 12px; }
+    .region-count { font-size: 13px; padding: 2px 8px; }
+    .legend-item { font-size: 13px; margin-bottom: 10px; }
+
+    /* Topbar */
+    .hamburger-btn { display: flex; align-items: center; font-size: 22px; padding: 6px 10px; }
+    .topbar-right { gap: 6px; }
+    .topbar-btn { padding: 8px 11px; font-size: 12px; }
+    .lock-btn { padding: 8px 11px; font-size: 12px; }
+    .desktop-only { display: none !important; }
+    .user-select { font-size: 13px; padding: 6px 10px; }
+
+    /* Content */
+    .content { padding: 16px; }
+    .content-header { flex-direction: column; gap: 14px; align-items: stretch; }
+    .content-header h1 { font-size: 30px; }
+    .add-project-btn { width: 100%; justify-content: center; padding: 14px; font-size: 15px; }
+
+    /* Stats */
+    .stats-row { grid-template-columns: repeat(2, 1fr); gap: 10px; }
+    .stat-num { font-size: 34px; }
+    .stat-label { font-size: 11px; }
+
+    /* Search bar — stack filters below search */
+    .search-bar { flex-wrap: wrap; gap: 8px; }
     .search-icon-wrap { width: 100%; flex: none; }
+    .search-input { font-size: 16px; padding: 12px 14px 12px 36px; } /* 16px stops iOS zoom */
+    .filter-select { flex: 1; min-width: 0; font-size: 14px; padding: 10px 8px; }
+
+    /* Project cards */
+    .project-header { padding: 16px 16px 14px; }
+    .project-name { font-size: 17px; }
+    .project-actions { gap: 8px; }
+    .action-btn { padding: 9px 16px; font-size: 13px; }
+    .meta-item { font-size: 13px; }
+    .status-badge { font-size: 11px; }
+
+    /* Delete confirm — bigger buttons */
+    .delete-confirm-row { padding: 12px 16px; flex-wrap: wrap; gap: 8px; }
+    .del-confirm-yes { padding: 10px 20px; font-size: 14px; }
+    .del-confirm-no  { padding: 10px 14px; font-size: 14px; }
+
+    /* Modal — full screen on mobile */
+    .modal-overlay { align-items: flex-start; }
+    .modal { width: 100% !important; max-width: 100% !important; max-height: 100dvh !important; border-radius: 0; position: fixed; inset: 0; overflow-y: auto; }
+    .form-row-half { grid-template-columns: 1fr; }
+    .form-row input, .form-row select, .form-row textarea { font-size: 16px; padding: 12px 14px; } /* 16px stops iOS zoom */
+    .modal-footer { position: sticky; bottom: 0; }
+    .submit-btn, .cancel-btn { padding: 12px 20px; font-size: 14px; }
+
+    /* Comments */
+    .comment-input { font-size: 16px; }
+    .comment-text { font-size: 14px; }
+    .post-btn { padding: 10px 18px; font-size: 13px; }
+
+    /* Toast — top of screen so keyboard doesn't cover it */
+    .toast { bottom: auto; top: 66px; right: 14px; left: 14px; text-align: center; font-size: 14px; }
   }
   .sidebar-overlay { display: none; position: fixed; inset: 0; top: 56px; background: rgba(0,0,0,0.45); z-index: 98; }
   .sidebar-overlay.active { display: block; }
@@ -376,9 +430,9 @@
       </select>
     </div>
     <button class="topbar-btn" onclick="openSettings()">⚙ Settings</button>
-    <button class="topbar-btn" onclick="exportData()" title="Export JSON backup">⬇ JSON</button>
-    <button class="topbar-btn" onclick="exportCSV()" title="Export CSV">⬇ CSV</button>
-    <button class="topbar-btn" onclick="importData()" title="Import backup">⬆ Import</button>
+    <button class="topbar-btn desktop-only" onclick="exportData()" title="Export JSON backup">⬇ JSON</button>
+    <button class="topbar-btn desktop-only" onclick="exportCSV()" title="Export CSV">⬇ CSV</button>
+    <button class="topbar-btn desktop-only" onclick="importData()" title="Import backup">⬆ Import</button>
     <button class="topbar-btn" onclick="copyShareLink()">🔗 Share</button>
     <button class="lock-btn" onclick="lockDashboard()">🔒 Lock</button>
   </div>
