@@ -324,27 +324,33 @@
 <body>
 
 <!-- LOCK SCREEN -->
-<div id="lockScreen" style="display:none;position:fixed;inset:0;background:#000000;z-index:9999;align-items:center;justify-content:center;flex-direction:column">
-  <div style="position:absolute;inset:0;opacity:0.04;background-image:repeating-linear-gradient(0deg,transparent,transparent 59px,rgba(255,255,255,0.5) 59px,rgba(255,255,255,0.5) 60px),repeating-linear-gradient(90deg,transparent,transparent 59px,rgba(255,255,255,0.5) 59px,rgba(255,255,255,0.5) 60px)"></div>
-  <div style="text-align:center;margin-bottom:40px;position:relative">
-    <div style="width:56px;height:56px;border:1px solid rgba(255,255,255,0.25);display:flex;align-items:center;justify-content:center;margin:0 auto 20px;font-family:'DM Sans',sans-serif;font-size:16px;font-weight:700;color:rgba(255,255,255,0.5);letter-spacing:1px">BW</div>
-    <div style="font-family:'Playfair Display',serif;font-size:28px;font-weight:900;color:#ffffff;letter-spacing:5px">BLACKWATCH GROUP</div>
-    <div style="font-size:9px;color:rgba(255,255,255,0.3);letter-spacing:4px;text-transform:uppercase;margin-top:10px">Intelligence · Access · Execution</div>
+<div id="lockScreen" style="display:none;position:fixed;inset:0;z-index:9999;align-items:center;justify-content:center;flex-direction:column;background:#111111;">
+  <!-- Top nav bar matching website -->
+  <div style="position:absolute;top:0;left:0;right:0;height:56px;background:#ffffff;display:flex;align-items:center;justify-content:space-between;padding:0 32px;border-bottom:1px solid #e8e8e8;">
+    <div style="font-family:'DM Sans',sans-serif;font-size:13px;font-weight:800;letter-spacing:3px;color:#111111;text-transform:uppercase">BLACKWATCH</div>
+    <div style="font-size:10px;color:#888888;letter-spacing:2px;text-transform:uppercase;font-family:'DM Sans',sans-serif;">Restricted Access</div>
   </div>
-  <div style="background:#ffffff;border-radius:4px;padding:32px 36px;width:340px;max-width:90vw;position:relative">
-    <div style="font-size:11px;font-weight:700;color:#888888;letter-spacing:2px;text-transform:uppercase;margin-bottom:5px">Credentials Required</div>
-    <div style="font-size:12px;color:#aaaaaa;margin-bottom:20px">This dashboard is restricted access.</div>
-    <input id="pwInput" type="password" placeholder="Enter password" onkeydown="if(event.key==='Enter')checkPassword()"
-      style="width:100%;border:1px solid #e0e0e0;border-radius:3px;padding:11px 13px;font-size:14px;font-family:'DM Sans',sans-serif;outline:none;margin-bottom:10px;background:#ffffff;color:#111111;transition:border-color 0.2s;"
-      onfocus="this.style.borderColor='#999'" onblur="this.style.borderColor='#e0e0e0'">
+  <!-- Center content -->
+  <div style="text-align:center;margin-bottom:36px;position:relative;margin-top:20px">
+    <div style="font-size:10px;color:rgba(255,255,255,0.55);letter-spacing:5px;text-transform:uppercase;margin-bottom:14px;font-family:'DM Sans',sans-serif;">// DUBAI · GLOBAL REACH</div>
+    <div style="font-family:'Playfair Display',serif;font-size:36px;font-weight:700;color:#ffffff;letter-spacing:2px;line-height:1.2;margin-bottom:12px">Intelligence,<br>Access, Execution.</div>
+    <div style="font-size:11px;color:rgba(255,255,255,0.6);letter-spacing:1px;font-family:'DM Sans',sans-serif;">Blackwatch Group — Strategic Advisory Dashboard</div>
+  </div>
+  <!-- Login card -->
+  <div style="background:#ffffff;padding:32px 36px;width:340px;max-width:90vw;position:relative;">
+    <div style="font-size:11px;font-weight:700;color:#111111;letter-spacing:2px;text-transform:uppercase;margin-bottom:5px">Credentials Required</div>
+    <div style="font-size:12px;color:#555555;margin-bottom:22px">This dashboard is restricted access.</div>
+    <input id="pwInput" type="password" placeholder="Enter your password" onkeydown="if(event.key==='Enter')checkPassword()"
+      style="width:100%;border:1px solid #cccccc;padding:11px 13px;font-size:14px;font-family:'DM Sans',sans-serif;outline:none;margin-bottom:10px;background:#f8f8f8;color:#111111;transition:border-color 0.2s;box-sizing:border-box;"
+      onfocus="this.style.borderColor='#111';this.style.background='#fff'" onblur="this.style.borderColor='#cccccc';this.style.background='#f8f8f8'">
     <div id="pwError" style="display:none;color:#9a1520;font-size:11px;margin-bottom:10px;letter-spacing:0.3px">Incorrect password. Access denied.</div>
     <button onclick="checkPassword()"
-      style="width:100%;background:#111111;color:#ffffff;border:none;padding:12px;border-radius:3px;font-size:12px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;transition:background 0.2s;letter-spacing:2px;text-transform:uppercase"
+      style="width:100%;background:#111111;color:#ffffff;border:none;padding:13px;font-size:11px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;transition:background 0.2s;letter-spacing:3px;text-transform:uppercase;"
       onmouseover="this.style.background='#333'" onmouseout="this.style.background='#111'">
-      Unlock
+      REQUEST ACCESS →
     </button>
   </div>
-  <div style="margin-top:22px;font-size:9px;color:rgba(255,255,255,0.15);letter-spacing:2px;position:relative">BLACKWATCH GROUP — CONFIDENTIAL</div>
+  <div style="margin-top:20px;font-size:9px;color:rgba(255,255,255,0.4);letter-spacing:2px;position:relative;font-family:'DM Sans',sans-serif;">BLACKWATCH GROUP — CONFIDENTIAL</div>
 </div>
 
 <!-- MAIN APP -->
