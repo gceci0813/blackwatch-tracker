@@ -5,9 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Blackwatch | Strategic Advisory Tracker</title>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
-<!-- Firebase SDK (shared real-time database) -->
-<script src="https://cdn.jsdelivr.net/npm/firebase@8.10.1/firebase-app.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/firebase@8.10.1/firebase-firestore.js"></script>
+<!-- Firebase Realtime Database: REST + SSE (no SDK needed) -->
 <style>
   :root {
     --bg: #f4f5f7;
@@ -712,77 +710,73 @@ let currentUser = 'GC';
 let editingId = null;
 
 // ============================================================
-// FIREBASE CONFIG — fill in your project values to enable
-// shared real-time sync across all team members' devices.
-//
-// Setup (free, 5 min):
-//  1. Go to https://console.firebase.google.com → Create project
-//  2. Build → Firestore Database → Create database → Test mode → any region
-//  3. Project Settings → Add web app → copy the config here
+// FIREBASE REALTIME DATABASE — shared real-time sync
+// Uses REST API + Server-Sent Events (no SDK required)
 // ============================================================
-const FIREBASE_CONFIG = {
-  apiKey:            "YOUR_API_KEY",
-  authDomain:        "YOUR_PROJECT_ID.firebaseapp.com",
-  projectId:         "YOUR_PROJECT_ID",
-  storageBucket:     "YOUR_PROJECT_ID.appspot.com",
-  messagingSenderId: "YOUR_SENDER_ID",
-  appId:             "YOUR_APP_ID"
-};
+const RTDB_URL  = 'https://bw-tracker-af1d7-default-rtdb.firebaseio.com';
+const RTDB_PATH = RTDB_URL + '/bw_data';
 
-// localStorage fallback keys (used when Firebase not configured)
+// localStorage fallback keys (used if RTDB_URL is blank)
 const STORAGE_KEY  = 'blackwatch_projects_v1';
 const COMMENTS_KEY = 'blackwatch_comments_v1';
 const SETTINGS_KEY = 'blackwatch_settings_v1';
 
-// In-memory state, kept live by Firestore onSnapshot listeners
-let db = null;
-let _cachedProjects = null;  // null = not yet loaded from Firestore
+// In-memory state kept live by SSE listener
+let _cachedProjects = null;
 let _cachedComments = {};
 let _cachedSettings = null;
+let _sse = null;
+
+// Parse a value that may be a JSON string (RTDB stores our arrays as strings)
+function safeUnpack(val, fallback) {
+  if (val === null || val === undefined) return fallback;
+  if (typeof val === 'string') { try { return JSON.parse(val); } catch { return fallback; } }
+  return val;
+}
 
 function initDB() {
-  if (typeof firebase === 'undefined' || FIREBASE_CONFIG.apiKey === 'YOUR_API_KEY') {
-    setSyncBadge('local');
-    return;
-  }
-  try {
-    if (!firebase.apps.length) firebase.initializeApp(FIREBASE_CONFIG);
-    db = firebase.firestore();
-    // Enable offline support so the app works on bad connections
-    db.enablePersistence({ synchronizeTabs: true }).catch(() => {});
-    setSyncBadge('connecting');
+  if (!RTDB_URL) { setSyncBadge('local'); return; }
+  setSyncBadge('connecting');
+  if (_sse) _sse.close();
 
-    // ---- Projects real-time listener ----
-    db.doc('bw_data/projects').onSnapshot(snap => {
-      if (snap.exists) {
-        _cachedProjects = (snap.data().list || [])
+  _sse = new EventSource(RTDB_PATH + '.json?accept=text/event-stream');
+
+  _sse.addEventListener('put', event => {
+    try {
+      const { path, data } = JSON.parse(event.data);
+
+      if (path === '/') {
+        // Initial full snapshot
+        if (!data) {
+          // Empty database — seed it
+          _cachedProjects = seedProjects;
+          _cachedComments = {};
+          _cachedSettings = { ...defaultSettings };
+          saveProjects(seedProjects);
+        } else {
+          _cachedProjects = safeUnpack(data.pj, seedProjects);
+          _cachedComments = safeUnpack(data.cj, {});
+          _cachedSettings = safeUnpack(data.sj, { ...defaultSettings });
+          if (!_cachedProjects || !_cachedProjects.length) {
+            _cachedProjects = seedProjects;
+            saveProjects(seedProjects);
+          }
+        }
+      } else if (path === '/pj') {
+        _cachedProjects = (safeUnpack(data, seedProjects) || [])
           .sort((a, b) => (b.created || 0) - (a.created || 0));
-      } else {
-        // First-ever open: seed the shared database with real deals
-        _cachedProjects = seedProjects;
-        db.doc('bw_data/projects').set({ list: seedProjects });
+      } else if (path === '/cj') {
+        _cachedComments = safeUnpack(data, {});
+      } else if (path === '/sj') {
+        _cachedSettings = safeUnpack(data, { ...defaultSettings });
       }
+
       setSyncBadge('live');
       if (document.getElementById('mainApp')?.style.display !== 'none') render();
-    }, err => { console.error('Projects sync error:', err); setSyncBadge('error'); });
+    } catch (e) { console.error('SSE parse error:', e); }
+  });
 
-    // ---- Settings real-time listener ----
-    db.doc('bw_data/settings').onSnapshot(snap => {
-      _cachedSettings = snap.exists ? snap.data() : { ...defaultSettings };
-      if (document.getElementById('mainApp')?.style.display !== 'none') render();
-    });
-
-    // ---- Comments real-time listener ----
-    db.doc('bw_data/comments').onSnapshot(snap => {
-      _cachedComments = snap.exists ? (snap.data() || {}) : {};
-      if (document.getElementById('mainApp')?.style.display !== 'none') render();
-    });
-
-  } catch (e) {
-    console.error('Firebase init failed, using localStorage:', e);
-    db = null;
-    setSyncBadge('local');
-  }
+  _sse.onerror = () => setSyncBadge('error'); // EventSource auto-reconnects
 }
 
 function setSyncBadge(state) {
@@ -827,28 +821,37 @@ const seedProjects = [
 ];
 
 // ========== STORAGE ==========
+async function rtdbPut(key, value) {
+  // Store as a JSON string to avoid Firebase array-coercion issues
+  await fetch(`${RTDB_PATH}/${key}.json`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(JSON.stringify(value))
+  });
+}
+
 async function loadProjects() {
-  if (db) return _cachedProjects !== null ? _cachedProjects : seedProjects;
+  if (RTDB_URL) return _cachedProjects !== null ? _cachedProjects : seedProjects;
   try { const r = localStorage.getItem(STORAGE_KEY); return r ? JSON.parse(r) : seedProjects; } catch { return seedProjects; }
 }
 async function saveProjects(p) {
-  if (db) { _cachedProjects = p; await db.doc('bw_data/projects').set({ list: p }); }
+  if (RTDB_URL) { _cachedProjects = p; await rtdbPut('pj', p); }
   else { try { localStorage.setItem(STORAGE_KEY, JSON.stringify(p)); } catch(e) { console.error(e); } }
 }
 async function loadComments() {
-  if (db) return _cachedComments;
+  if (RTDB_URL) return _cachedComments;
   try { const r = localStorage.getItem(COMMENTS_KEY); return r ? JSON.parse(r) : {}; } catch { return {}; }
 }
 async function saveComments(c) {
-  if (db) { _cachedComments = c; await db.doc('bw_data/comments').set(c); }
+  if (RTDB_URL) { _cachedComments = c; await rtdbPut('cj', c); }
   else { try { localStorage.setItem(COMMENTS_KEY, JSON.stringify(c)); } catch(e) { console.error(e); } }
 }
 async function loadSettings() {
-  if (db) return _cachedSettings !== null ? _cachedSettings : { ...defaultSettings };
+  if (RTDB_URL) return _cachedSettings !== null ? _cachedSettings : { ...defaultSettings };
   try { const r = localStorage.getItem(SETTINGS_KEY); return r ? JSON.parse(r) : defaultSettings; } catch { return defaultSettings; }
 }
 async function saveSettingsData(s) {
-  if (db) { _cachedSettings = s; await db.doc('bw_data/settings').set(s); }
+  if (RTDB_URL) { _cachedSettings = s; await rtdbPut('sj', s); }
   else { try { localStorage.setItem(SETTINGS_KEY, JSON.stringify(s)); } catch(e) { console.error(e); } }
 }
 
