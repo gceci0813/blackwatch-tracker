@@ -5,6 +5,9 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Blackwatch | Strategic Advisory Tracker</title>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<!-- Firebase SDK (shared real-time database) -->
+<script src="https://cdn.jsdelivr.net/npm/firebase@8.10.1/firebase-app.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/firebase@8.10.1/firebase-firestore.js"></script>
 <style>
   :root {
     --bg: #f4f5f7;
@@ -429,6 +432,7 @@
         <option value="Ara">Ara</option>
       </select>
     </div>
+    <span id="syncBadge" style="font-size:10px;font-weight:700;letter-spacing:1.5px;padding:4px 8px;border-radius:3px;background:rgba(255,255,255,0.08);color:rgba(255,255,255,0.4);font-family:'DM Sans',sans-serif;"></span>
     <button class="topbar-btn" onclick="openSettings()">⚙ Settings</button>
     <button class="topbar-btn desktop-only" onclick="exportData()" title="Export JSON backup">⬇ JSON</button>
     <button class="topbar-btn desktop-only" onclick="exportCSV()" title="Export CSV">⬇ CSV</button>
@@ -707,9 +711,93 @@ let currentRegion = 'all';
 let currentUser = 'GC';
 let editingId = null;
 
+// ============================================================
+// FIREBASE CONFIG — fill in your project values to enable
+// shared real-time sync across all team members' devices.
+//
+// Setup (free, 5 min):
+//  1. Go to https://console.firebase.google.com → Create project
+//  2. Build → Firestore Database → Create database → Test mode → any region
+//  3. Project Settings → Add web app → copy the config here
+// ============================================================
+const FIREBASE_CONFIG = {
+  apiKey:            "YOUR_API_KEY",
+  authDomain:        "YOUR_PROJECT_ID.firebaseapp.com",
+  projectId:         "YOUR_PROJECT_ID",
+  storageBucket:     "YOUR_PROJECT_ID.appspot.com",
+  messagingSenderId: "YOUR_SENDER_ID",
+  appId:             "YOUR_APP_ID"
+};
+
+// localStorage fallback keys (used when Firebase not configured)
 const STORAGE_KEY  = 'blackwatch_projects_v1';
 const COMMENTS_KEY = 'blackwatch_comments_v1';
 const SETTINGS_KEY = 'blackwatch_settings_v1';
+
+// In-memory state, kept live by Firestore onSnapshot listeners
+let db = null;
+let _cachedProjects = null;  // null = not yet loaded from Firestore
+let _cachedComments = {};
+let _cachedSettings = null;
+
+function initDB() {
+  if (typeof firebase === 'undefined' || FIREBASE_CONFIG.apiKey === 'YOUR_API_KEY') {
+    setSyncBadge('local');
+    return;
+  }
+  try {
+    if (!firebase.apps.length) firebase.initializeApp(FIREBASE_CONFIG);
+    db = firebase.firestore();
+    // Enable offline support so the app works on bad connections
+    db.enablePersistence({ synchronizeTabs: true }).catch(() => {});
+    setSyncBadge('connecting');
+
+    // ---- Projects real-time listener ----
+    db.doc('bw_data/projects').onSnapshot(snap => {
+      if (snap.exists) {
+        _cachedProjects = (snap.data().list || [])
+          .sort((a, b) => (b.created || 0) - (a.created || 0));
+      } else {
+        // First-ever open: seed the shared database with real deals
+        _cachedProjects = seedProjects;
+        db.doc('bw_data/projects').set({ list: seedProjects });
+      }
+      setSyncBadge('live');
+      if (document.getElementById('mainApp')?.style.display !== 'none') render();
+    }, err => { console.error('Projects sync error:', err); setSyncBadge('error'); });
+
+    // ---- Settings real-time listener ----
+    db.doc('bw_data/settings').onSnapshot(snap => {
+      _cachedSettings = snap.exists ? snap.data() : { ...defaultSettings };
+      if (document.getElementById('mainApp')?.style.display !== 'none') render();
+    });
+
+    // ---- Comments real-time listener ----
+    db.doc('bw_data/comments').onSnapshot(snap => {
+      _cachedComments = snap.exists ? (snap.data() || {}) : {};
+      if (document.getElementById('mainApp')?.style.display !== 'none') render();
+    });
+
+  } catch (e) {
+    console.error('Firebase init failed, using localStorage:', e);
+    db = null;
+    setSyncBadge('local');
+  }
+}
+
+function setSyncBadge(state) {
+  const el = document.getElementById('syncBadge');
+  if (!el) return;
+  const map = {
+    live:       { text: '● LIVE',  color: '#1a7a40' },
+    local:      { text: '⚠ LOCAL', color: '#b86c0a' },
+    connecting: { text: '◌ SYNC…', color: 'rgba(255,255,255,0.45)' },
+    error:      { text: '✕ SYNC',  color: '#9a1520' }
+  };
+  const s = map[state] || map.local;
+  el.textContent = s.text;
+  el.style.color = s.color;
+}
 
 const meGroup = ['middle_east','uae','ksa','qatar','jordan','oman','iraq','yemen'];
 
@@ -739,16 +827,35 @@ const seedProjects = [
 ];
 
 // ========== STORAGE ==========
-async function loadProjects() { try { const r = localStorage.getItem(STORAGE_KEY); return r ? JSON.parse(r) : seedProjects; } catch { return seedProjects; } }
-async function saveProjects(p) { try { localStorage.setItem(STORAGE_KEY, JSON.stringify(p)); } catch(e) { console.error(e); } }
-async function loadComments() { try { const r = localStorage.getItem(COMMENTS_KEY); return r ? JSON.parse(r) : {}; } catch { return {}; } }
-async function saveComments(c) { try { localStorage.setItem(COMMENTS_KEY, JSON.stringify(c)); } catch(e) { console.error(e); } }
-async function loadSettings() { try { const r = localStorage.getItem(SETTINGS_KEY); return r ? JSON.parse(r) : defaultSettings; } catch { return defaultSettings; } }
-async function saveSettingsData(s) { try { localStorage.setItem(SETTINGS_KEY, JSON.stringify(s)); } catch(e) { console.error(e); } }
+async function loadProjects() {
+  if (db) return _cachedProjects !== null ? _cachedProjects : seedProjects;
+  try { const r = localStorage.getItem(STORAGE_KEY); return r ? JSON.parse(r) : seedProjects; } catch { return seedProjects; }
+}
+async function saveProjects(p) {
+  if (db) { _cachedProjects = p; await db.doc('bw_data/projects').set({ list: p }); }
+  else { try { localStorage.setItem(STORAGE_KEY, JSON.stringify(p)); } catch(e) { console.error(e); } }
+}
+async function loadComments() {
+  if (db) return _cachedComments;
+  try { const r = localStorage.getItem(COMMENTS_KEY); return r ? JSON.parse(r) : {}; } catch { return {}; }
+}
+async function saveComments(c) {
+  if (db) { _cachedComments = c; await db.doc('bw_data/comments').set(c); }
+  else { try { localStorage.setItem(COMMENTS_KEY, JSON.stringify(c)); } catch(e) { console.error(e); } }
+}
+async function loadSettings() {
+  if (db) return _cachedSettings !== null ? _cachedSettings : { ...defaultSettings };
+  try { const r = localStorage.getItem(SETTINGS_KEY); return r ? JSON.parse(r) : defaultSettings; } catch { return defaultSettings; }
+}
+async function saveSettingsData(s) {
+  if (db) { _cachedSettings = s; await db.doc('bw_data/settings').set(s); }
+  else { try { localStorage.setItem(SETTINGS_KEY, JSON.stringify(s)); } catch(e) { console.error(e); } }
+}
 
 // ========== EXPORT / IMPORT ==========
-function exportData() {
-  const data = { projects: localStorage.getItem(STORAGE_KEY), comments: localStorage.getItem(COMMENTS_KEY), settings: localStorage.getItem(SETTINGS_KEY), exportedAt: new Date().toISOString() };
+async function exportData() {
+  const [p, c, s] = await Promise.all([loadProjects(), loadComments(), loadSettings()]);
+  const data = { projects: JSON.stringify(p), comments: JSON.stringify(c), settings: JSON.stringify(s), exportedAt: new Date().toISOString() };
   const a = document.createElement('a');
   a.href = URL.createObjectURL(new Blob([JSON.stringify(data, null, 2)], { type:'application/json' }));
   a.download = 'blackwatch-backup-' + new Date().toISOString().slice(0,10) + '.json';
@@ -759,12 +866,12 @@ function importData() {
   input.onchange = e => {
     const file = e.target.files[0]; if (!file) return;
     const reader = new FileReader();
-    reader.onload = ev => {
+    reader.onload = async ev => {
       try {
         const data = JSON.parse(ev.target.result);
-        if (data.projects) localStorage.setItem(STORAGE_KEY, data.projects);
-        if (data.comments) localStorage.setItem(COMMENTS_KEY, data.comments);
-        if (data.settings) localStorage.setItem(SETTINGS_KEY, data.settings);
+        if (data.projects) await saveProjects(JSON.parse(data.projects));
+        if (data.comments) await saveComments(JSON.parse(data.comments));
+        if (data.settings) await saveSettingsData(JSON.parse(data.settings));
         showToast('Imported ✓ — reloading…');
         setTimeout(() => location.reload(), 1200);
       } catch { showToast('Invalid file', 'error'); }
@@ -1191,6 +1298,7 @@ function checkPassword() {
     if (sel) sel.value = matchedUser;
     const av = document.getElementById('currentAvatarTop');
     if (av) av.textContent = matchedUser.slice(0,2).toUpperCase();
+    initDB();
     render();
   } else {
     document.getElementById('pwError').style.display = 'block';
@@ -1211,6 +1319,7 @@ function checkPassword() {
     if (sel) sel.value = savedUser;
     const av = document.getElementById('currentAvatarTop');
     if (av) av.textContent = savedUser.slice(0,2).toUpperCase();
+    initDB();
   } else {
     document.getElementById('lockScreen').style.display = 'flex';
     setTimeout(() => document.getElementById('pwInput').focus(), 100);
