@@ -6,6 +6,8 @@
 <title>Blackwatch | Strategic Advisory Tracker</title>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
 <!-- Firebase Realtime Database: REST + SSE (no SDK needed) -->
+<!-- EmailJS for client-side email reminders -->
+<script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
 <style>
   :root {
     --bg: #f4f5f7;
@@ -691,7 +693,21 @@
           <button onclick="addUserRow()" style="background:#111;color:#fff;border:none;padding:4px 11px;border-radius:3px;font-size:11px;cursor:pointer;font-family:'DM Sans',sans-serif;font-weight:600;">+ Add</button>
         </div>
         <div id="usersEditor" style="display:flex;flex-direction:column;gap:8px"></div>
-        <p style="font-size:10px;color:var(--muted);margin-top:9px">Members appear in the user switcher and owner dropdown.</p>
+        <p style="font-size:10px;color:var(--muted);margin-top:9px">Members appear in the user switcher and owner dropdown. Add each person's email to receive follow-up reminders.</p>
+      </div>
+      <div style="margin-top:24px">
+        <div style="font-size:10px;font-weight:700;color:#888;text-transform:uppercase;letter-spacing:2px;margin-bottom:10px;padding-bottom:6px;border-bottom:1px solid var(--border)">📧 Email Reminders</div>
+        <p style="font-size:11px;color:var(--muted);margin-bottom:14px;line-height:1.6">Uses <strong>EmailJS</strong> (free, no server needed). <a href="https://www.emailjs.com" target="_blank" style="color:var(--info)">Sign up at emailjs.com</a> → create an Email Service + Template → paste the IDs below. Reminders fire when a deal is saved with a follow-up date, and again each morning on login.</p>
+        <div class="form-row-half">
+          <div class="form-row"><label>Service ID</label><input type="text" id="s_ej_service" placeholder="service_xxxxxxx"></div>
+          <div class="form-row"><label>Template ID</label><input type="text" id="s_ej_template" placeholder="template_xxxxxxx"></div>
+        </div>
+        <div class="form-row"><label>Public Key</label><input type="text" id="s_ej_key" placeholder="Your EmailJS public key (User ID)"></div>
+        <div style="display:flex;align-items:center;gap:10px;margin-top:8px">
+          <button onclick="testEmailJS()" style="background:#f4f5f7;border:1px solid var(--border);padding:7px 16px;border-radius:3px;font-size:12px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;">Send Test Email →</button>
+          <div id="ej_test_result" style="font-size:11px;display:none"></div>
+        </div>
+        <p style="font-size:10px;color:var(--muted);margin-top:10px">Template variables to use in EmailJS: <code style="background:#f4f5f7;padding:1px 4px;border-radius:2px">{{to_name}}</code> <code style="background:#f4f5f7;padding:1px 4px;border-radius:2px">{{engagement_name}}</code> <code style="background:#f4f5f7;padding:1px 4px;border-radius:2px">{{follow_up_date}}</code> <code style="background:#f4f5f7;padding:1px 4px;border-radius:2px">{{owner}}</code> <code style="background:#f4f5f7;padding:1px 4px;border-radius:2px">{{added_by}}</code></p>
       </div>
     </div>
     <div class="modal-footer">
@@ -801,12 +817,13 @@ const defaultSettings = {
   dashSubtitle: 'Blackwatch Group — Strategic Advisory Dashboard',
   brandName:    'BLACKWATCH',
   users: [
-    { name:'GC',     color:'#111111', role:'Managing Partner' },
-    { name:'George', color:'#1a4fa0', role:'Managing Partner' },
-    { name:'Marco',  color:'#5a3db0', role:'Chief Operating Officer' },
-    { name:'Walid',  color:'#1a7a40', role:'Business Development' },
-    { name:'Ara',    color:'#b86c0a', role:'CEO' }
-  ]
+    { name:'GC',     color:'#111111', role:'Managing Partner',        email:'' },
+    { name:'George', color:'#1a4fa0', role:'Managing Partner',        email:'' },
+    { name:'Marco',  color:'#5a3db0', role:'Chief Operating Officer', email:'' },
+    { name:'Walid',  color:'#1a7a40', role:'Business Development',    email:'' },
+    { name:'Ara',    color:'#b86c0a', role:'CEO',                     email:'' }
+  ],
+  emailjs: { serviceId:'', templateId:'', publicKey:'' }
 };
 
 // ========== SEED DATA ==========
@@ -1104,6 +1121,11 @@ async function openSettings() {
   document.getElementById('s_dashTitle').value = s.dashTitle||'';
   document.getElementById('s_dashSubtitle').value = s.dashSubtitle||'';
   document.getElementById('s_brandName').value = s.brandName||'';
+  const ejCfg = s.emailjs||{};
+  document.getElementById('s_ej_service').value = ejCfg.serviceId||'';
+  document.getElementById('s_ej_template').value = ejCfg.templateId||'';
+  document.getElementById('s_ej_key').value = ejCfg.publicKey||'';
+  document.getElementById('ej_test_result').style.display='none';
   settingsUserRows = JSON.parse(JSON.stringify(s.users));
   renderUserRows();
   document.getElementById('settingsOverlay').classList.add('open');
@@ -1114,6 +1136,7 @@ function renderUserRows() {
       <input type="color" value="${u.color}" onchange="settingsUserRows[${i}].color=this.value" style="width:30px;height:30px;border-radius:50%;border:1px solid #ddd;cursor:pointer;padding:2px;background:none">
       <input type="text" value="${u.name}" placeholder="Name" onchange="settingsUserRows[${i}].name=this.value" style="flex:1">
       <input type="text" value="${u.role||''}" placeholder="Role (optional)" onchange="settingsUserRows[${i}].role=this.value" class="user-role-input" style="flex:1.2">
+      <input type="email" value="${u.email||''}" placeholder="Email for reminders" onchange="settingsUserRows[${i}].email=this.value" style="flex:1.5;font-size:13px;padding:7px 10px;border:1px solid var(--border);border-radius:3px;font-family:'DM Sans',sans-serif;">
       <button class="remove-user-btn" onclick="removeUserRow(${i})">×</button>
     </div>`).join('');
 }
@@ -1129,22 +1152,127 @@ document.addEventListener('input', e => {
   const row = e.target.closest('.user-row'); if (!row) return;
   const idx = parseInt(row.id.replace('urow-',''));
   const inputs = row.querySelectorAll('input[type="text"]');
+  const emailInput = row.querySelector('input[type="email"]');
   if (e.target===inputs[0]) settingsUserRows[idx].name=e.target.value;
   if (e.target===inputs[1]) settingsUserRows[idx].role=e.target.value;
+  if (emailInput && e.target===emailInput) settingsUserRows[idx].email=e.target.value;
 });
 async function saveSettings() {
   const users = [];
   document.querySelectorAll('.user-row').forEach(row => {
     const color=row.querySelector('input[type="color"]').value;
     const texts=row.querySelectorAll('input[type="text"]');
+    const emailInput=row.querySelector('input[type="email"]');
     const name=texts[0].value.trim(); const role=texts[1]?.value.trim()||'';
-    if (name) users.push({name,color,role});
+    const email=emailInput?.value.trim()||'';
+    if (name) users.push({name,color,role,email});
   });
   if (!users.length) { showToast('Add at least one team member'); return; }
-  const s = { dashTitle:document.getElementById('s_dashTitle').value.trim(), dashSubtitle:document.getElementById('s_dashSubtitle').value.trim(), brandName:document.getElementById('s_brandName').value.trim(), users };
-  await saveSettingsData(s); closeSettings(); showToast('Settings saved ✓'); render();
+  const ejServiceId=document.getElementById('s_ej_service')?.value.trim()||'';
+  const ejTemplateId=document.getElementById('s_ej_template')?.value.trim()||'';
+  const ejPublicKey=document.getElementById('s_ej_key')?.value.trim()||'';
+  const s = { dashTitle:document.getElementById('s_dashTitle').value.trim(), dashSubtitle:document.getElementById('s_dashSubtitle').value.trim(), brandName:document.getElementById('s_brandName').value.trim(), users, emailjs:{serviceId:ejServiceId,templateId:ejTemplateId,publicKey:ejPublicKey} };
+  await saveSettingsData(s);
+  if (ejPublicKey) initEmailJS(ejPublicKey);
+  closeSettings(); showToast('Settings saved ✓'); render();
 }
 function closeSettings() { document.getElementById('settingsOverlay').classList.remove('open'); }
+
+// ========== EMAIL REMINDERS (EMAILJS) ==========
+function initEmailJS(publicKey) {
+  if (publicKey && typeof emailjs !== 'undefined') {
+    try { emailjs.init(publicKey); } catch(e) { console.warn('EmailJS init failed', e); }
+  }
+}
+
+async function sendReminderEmail({ toEmail, toName, engagementName, followUpDate, owner, addedBy, msgType }) {
+  const s = await loadSettings();
+  const ejs = s.emailjs || {};
+  if (!ejs.serviceId || !ejs.templateId || !ejs.publicKey || !toEmail) return false;
+  try {
+    initEmailJS(ejs.publicKey);
+    const dateStr = followUpDate
+      ? new Date(followUpDate + 'T00:00:00').toLocaleDateString('en-US', { weekday:'long', year:'numeric', month:'long', day:'numeric' })
+      : '—';
+    await emailjs.send(ejs.serviceId, ejs.templateId, {
+      to_email:        toEmail,
+      to_name:         toName || owner,
+      engagement_name: engagementName,
+      follow_up_date:  dateStr,
+      owner:           owner,
+      added_by:        addedBy || owner,
+      message_type:    msgType || 'reminder'
+    });
+    return true;
+  } catch(e) {
+    console.error('EmailJS send error', e);
+    return false;
+  }
+}
+
+async function checkUpcomingReminders() {
+  const s = await loadSettings();
+  const ejs = s.emailjs || {};
+  if (!ejs.serviceId || !ejs.templateId || !ejs.publicKey) return;
+  initEmailJS(ejs.publicKey);
+
+  const today = new Date(); today.setHours(0,0,0,0);
+  const dayAfter = new Date(today); dayAfter.setDate(dayAfter.getDate() + 2);
+  const todayKey = 'bw_rem_' + today.toISOString().split('T')[0];
+  let sent; try { sent = JSON.parse(localStorage.getItem(todayKey)||'[]'); } catch { sent=[]; }
+
+  const projects = await loadProjects();
+  let changed = false;
+  for (const p of projects) {
+    if (!p.date || sent.includes(p.id)) continue;
+    const d = new Date(p.date + 'T00:00:00');
+    if (d >= today && d < dayAfter) {
+      const ownerUser = s.users.find(u => u.name === p.owner);
+      if (ownerUser?.email) {
+        const isToday = d.getTime() === today.getTime();
+        const ok = await sendReminderEmail({
+          toEmail: ownerUser.email, toName: ownerUser.name,
+          engagementName: p.name, followUpDate: p.date,
+          owner: p.owner, addedBy: p.owner,
+          msgType: isToday ? 'today' : 'tomorrow'
+        });
+        if (ok) { sent.push(p.id); changed = true; }
+      }
+    }
+  }
+  if (changed) try { localStorage.setItem(todayKey, JSON.stringify(sent)); } catch {}
+}
+
+async function testEmailJS() {
+  const serviceId = document.getElementById('s_ej_service')?.value.trim();
+  const templateId = document.getElementById('s_ej_template')?.value.trim();
+  const publicKey = document.getElementById('s_ej_key')?.value.trim();
+  const result = document.getElementById('ej_test_result');
+  if (!serviceId || !templateId || !publicKey) {
+    if (result) { result.style.display='block'; result.style.color='#9a1520'; result.textContent='Fill in all three EmailJS fields first.'; }
+    return;
+  }
+  if (result) { result.style.display='block'; result.style.color='var(--muted)'; result.textContent='Sending test email…'; }
+  try {
+    initEmailJS(publicKey);
+    const s = await loadSettings();
+    const me = s.users.find(u => u.name === currentUser);
+    const toEmail = me?.email || '';
+    if (!toEmail) {
+      if (result) { result.style.color='#b86c0a'; result.textContent='Add your email in Team Members above first.'; }
+      return;
+    }
+    await emailjs.send(serviceId, templateId, {
+      to_email: toEmail, to_name: currentUser,
+      engagement_name: 'Test Engagement',
+      follow_up_date: new Date().toLocaleDateString('en-US', { weekday:'long', year:'numeric', month:'long', day:'numeric' }),
+      owner: currentUser, added_by: currentUser, message_type: 'test'
+    });
+    if (result) { result.style.color='#1a7a40'; result.textContent='✓ Test email sent! Check your inbox.'; }
+  } catch(e) {
+    if (result) { result.style.color='#9a1520'; result.textContent='Error: ' + (e?.text || e?.message || JSON.stringify(e)); }
+  }
+}
 
 // ========== PROJECT ACTIONS ==========
 function toggleExpand(id) { document.getElementById('expand-'+id).classList.toggle('open'); }
@@ -1198,7 +1326,20 @@ async function saveProject() {
   const data = { id, name, client:document.getElementById('f_client').value.trim(), region:document.getElementById('f_region').value, status:document.getElementById('f_status').value, owner:document.getElementById('f_owner').value, value:document.getElementById('f_value').value.trim(), date:document.getElementById('f_date').value, progress:document.getElementById('f_progress').value, desc:document.getElementById('f_desc').value.trim(), nextsteps:document.getElementById('f_nextsteps').value.trim(), created:Date.now() };
   if (editingId) { const idx=projects.findIndex(p=>p.id===editingId); if(idx!==-1){data.created=projects[idx].created; projects[idx]=data;} }
   else projects.unshift(data);
-  await saveProjects(projects); closeModal(); showToast(editingId?'Updated ✓':'Added ✓'); editingId=null; render();
+  await saveProjects(projects); closeModal(); showToast(editingId?'Updated ✓':'Added ✓');
+  // Fire email reminder if a follow-up date is set
+  if (data.date) {
+    loadSettings().then(s => {
+      const ejs = s.emailjs||{};
+      if (ejs.serviceId && ejs.templateId && ejs.publicKey) {
+        const ownerUser = s.users.find(u => u.name === data.owner);
+        if (ownerUser?.email) {
+          sendReminderEmail({ toEmail:ownerUser.email, toName:ownerUser.name, engagementName:data.name, followUpDate:data.date, owner:data.owner, addedBy:currentUser, msgType: editingId ? 'updated' : 'new' });
+        }
+      }
+    });
+  }
+  editingId=null; render();
 }
 
 async function openModal() {
@@ -1302,6 +1443,7 @@ function checkPassword() {
     const av = document.getElementById('currentAvatarTop');
     if (av) av.textContent = matchedUser.slice(0,2).toUpperCase();
     initDB();
+    checkUpcomingReminders();
     render();
   } else {
     document.getElementById('pwError').style.display = 'block';
@@ -1323,6 +1465,7 @@ function checkPassword() {
     const av = document.getElementById('currentAvatarTop');
     if (av) av.textContent = savedUser.slice(0,2).toUpperCase();
     initDB();
+    checkUpcomingReminders();
   } else {
     document.getElementById('lockScreen').style.display = 'flex';
     setTimeout(() => document.getElementById('pwInput').focus(), 100);
