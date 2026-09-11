@@ -1222,22 +1222,26 @@ async function checkUpcomingReminders() {
   let sent; try { sent = JSON.parse(localStorage.getItem(todayKey)||'[]'); } catch { sent=[]; }
 
   const projects = await loadProjects();
+  // All team members who have an email configured
+  const recipients = s.users.filter(u => u.email);
   let changed = false;
   for (const p of projects) {
     if (!p.date || sent.includes(p.id)) continue;
     const d = new Date(p.date + 'T00:00:00');
     if (d >= today && d < dayAfter) {
-      const ownerUser = s.users.find(u => u.name === p.owner);
-      if (ownerUser?.email) {
-        const isToday = d.getTime() === today.getTime();
+      const isToday = d.getTime() === today.getTime();
+      // Send to every team member with an email
+      let anyOk = false;
+      for (const recipient of recipients) {
         const ok = await sendReminderEmail({
-          toEmail: ownerUser.email, toName: ownerUser.name,
+          toEmail: recipient.email, toName: recipient.name,
           engagementName: p.name, followUpDate: p.date,
           owner: p.owner, addedBy: p.owner,
           msgType: isToday ? 'today' : 'tomorrow'
         });
-        if (ok) { sent.push(p.id); changed = true; }
+        if (ok) anyOk = true;
       }
+      if (anyOk) { sent.push(p.id); changed = true; }
     }
   }
   if (changed) try { localStorage.setItem(todayKey, JSON.stringify(sent)); } catch {}
@@ -1327,15 +1331,17 @@ async function saveProject() {
   if (editingId) { const idx=projects.findIndex(p=>p.id===editingId); if(idx!==-1){data.created=projects[idx].created; projects[idx]=data;} }
   else projects.unshift(data);
   await saveProjects(projects); closeModal(); showToast(editingId?'Updated ✓':'Added ✓');
-  // Fire email reminder if a follow-up date is set
+  // Fire email reminder to all team members if a follow-up date is set
   if (data.date) {
+    const isEdit = !!editingId;
     loadSettings().then(s => {
       const ejs = s.emailjs||{};
       if (ejs.serviceId && ejs.templateId && ejs.publicKey) {
-        const ownerUser = s.users.find(u => u.name === data.owner);
-        if (ownerUser?.email) {
-          sendReminderEmail({ toEmail:ownerUser.email, toName:ownerUser.name, engagementName:data.name, followUpDate:data.date, owner:data.owner, addedBy:currentUser, msgType: editingId ? 'updated' : 'new' });
-        }
+        // Send to every team member who has an email configured
+        const recipients = s.users.filter(u => u.email);
+        recipients.forEach(recipient => {
+          sendReminderEmail({ toEmail:recipient.email, toName:recipient.name, engagementName:data.name, followUpDate:data.date, owner:data.owner, addedBy:currentUser, msgType: isEdit ? 'updated' : 'new' });
+        });
       }
     });
   }
