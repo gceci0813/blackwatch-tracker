@@ -1256,23 +1256,33 @@ async function testEmailJS() {
     if (result) { result.style.display='block'; result.style.color='#9a1520'; result.textContent='Fill in all three EmailJS fields first.'; }
     return;
   }
-  if (result) { result.style.display='block'; result.style.color='var(--muted)'; result.textContent='Sending test email…'; }
+  // Save current field values to settings before testing so we use the latest keys
+  const s = await loadSettings();
+  const recipients = (s.users || []).filter(u => u.email);
+  if (!recipients.length) {
+    if (result) { result.style.display='block'; result.style.color='#b86c0a'; result.textContent='Add email addresses in Team Members above first.'; }
+    return;
+  }
+  if (result) { result.style.display='block'; result.style.color='var(--muted)'; result.textContent=`Sending to ${recipients.length} team member${recipients.length>1?'s':''}…`; }
   try {
     initEmailJS(publicKey);
-    const s = await loadSettings();
-    const me = s.users.find(u => u.name === currentUser);
-    const toEmail = me?.email || '';
-    if (!toEmail) {
-      if (result) { result.style.color='#b86c0a'; result.textContent='Add your email in Team Members above first.'; }
-      return;
+    const dateStr = new Date().toLocaleDateString('en-US', { weekday:'long', year:'numeric', month:'long', day:'numeric' });
+    let sent = 0, failed = 0;
+    for (const recipient of recipients) {
+      try {
+        await emailjs.send(serviceId, templateId, {
+          to_email: recipient.email, to_name: recipient.name,
+          engagement_name: 'Test Engagement',
+          follow_up_date: dateStr,
+          owner: currentUser, added_by: currentUser, message_type: 'test'
+        });
+        sent++;
+      } catch(e) { failed++; console.error('EmailJS test failed for', recipient.name, e); }
     }
-    await emailjs.send(serviceId, templateId, {
-      to_email: toEmail, to_name: currentUser,
-      engagement_name: 'Test Engagement',
-      follow_up_date: new Date().toLocaleDateString('en-US', { weekday:'long', year:'numeric', month:'long', day:'numeric' }),
-      owner: currentUser, added_by: currentUser, message_type: 'test'
-    });
-    if (result) { result.style.color='#1a7a40'; result.textContent='✓ Test email sent! Check your inbox.'; }
+    if (result) {
+      if (failed === 0) { result.style.color='#1a7a40'; result.textContent=`✓ Test sent to all ${sent} team member${sent>1?'s':''}! Check inboxes.`; }
+      else { result.style.color='#b86c0a'; result.textContent=`${sent} sent, ${failed} failed — check console for details.`; }
+    }
   } catch(e) {
     if (result) { result.style.color='#9a1520'; result.textContent='Error: ' + (e?.text || e?.message || JSON.stringify(e)); }
   }
